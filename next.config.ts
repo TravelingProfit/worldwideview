@@ -63,6 +63,12 @@ const nextConfig: NextConfig = {
     CESIUM_BASE_URL: "/cesium",
   },
   webpack: (config, { isServer, webpack }) => {
+    config.ignoreWarnings = [
+      { module: /node_modules[\\/]@opentelemetry/ },
+      { module: /node_modules[\\/]require-in-the-middle/ },
+      { module: /node_modules[\\/]@sentry/ },
+    ];
+
     if (!isServer) {
       // Define CESIUM_BASE_URL for Cesium's worker resolution
       config.plugins?.push(
