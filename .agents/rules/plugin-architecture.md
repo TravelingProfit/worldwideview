@@ -78,6 +78,14 @@ DataBus.getInstance().emit('dataUpdated', {
 });
 ```
 
+## Local Plugin Development (Sandbox)
+
+To rapidly iterate on plugins without polluting the core monorepo `packages/` directory or git history, use the local devkit:
+
+1. **Create**: Run `node packages/wwv-cli/dist/index.js create <name> --local` to scaffold a full plugin structure inside the `local-plugins/` directory.
+2. **Develop**: Running `pnpm dev` or `pnpm dev:all` automatically spawns the `dev:plugins` watcher. Any changes made to plugins in `local-plugins/` will be instantly rebuilt using Vite (externalizing large globals) and synced to `public/plugins-local/` for hot-reloading.
+3. **Promote**: Once the plugin is stable and ready to be committed or published, run `node packages/wwv-cli/dist/index.js link <name>` to automatically move it to `packages/` and clean up the sandbox.
+
 ## When to Apply
 When writing `fetch` implementations for plugins, or tracing why an entity dropped off the map. Ensure missing data correctly triggers the cache fallback via the DataBus. Ensure all new external plugins use the `bundle` format and exist in the marketplace registry to avoid CDN 404 hydrating crashes.
 

@@ -63,6 +63,7 @@ worldwideview/
 │   ├── styles/            # HUD animations CSS
 │   ├── types/             # GeoJSON types, Umami types
 │   └── generated/         # Prisma generated client (gitignored)
+├── local-plugins/         # Local sandbox for developing plugins (gitignored)
 ├── packages/              # pnpm monorepo workspace packages
 │   ├── wwv-plugin-sdk/    # Plugin SDK: type definitions, manifest schema
 │   ├── wwv-plugin-aviation/
@@ -195,11 +196,11 @@ Built-in plugins are instantiated in `AppShell.tsx` and registered via `PluginRe
 
 ### 5.6 Workspace Rules
 
-- Always run `pnpm install` from project root after creating new packages
-- Plugin packages go in `packages/wwv-plugin-<name>/`
-- Microservice backends go in `packages/wwv-plugin-<name>/backend/`
-- Both globs (`packages/*` and `packages/*/backend`) are in `pnpm-workspace.yaml`
-- Add new plugins to `transpilePackages` in `next.config.ts` and `paths` in `tsconfig.json`
+- Always run `pnpm install` from project root after creating new packages or linking local plugins
+- Official plugin packages go in `packages/wwv-plugin-<name>/`
+- Experimental/local plugin sandboxes go in `local-plugins/wwv-plugin-<name>/`
+- Globs for `packages/*`, `packages/*/backend`, and `local-plugins/*` are mapped in `pnpm-workspace.yaml` and `tsconfig.json` paths
+- Add new `packages/` plugins to `transpilePackages` in `next.config.ts` if required
 
 ### 5.7 AI Meta-Directives: Antigravity Standard (Claude Code)
 
@@ -254,6 +255,9 @@ pnpm db:reset         # Reset and re-migrate the frontend database (destructive)
 pnpm start:backends   # Start all plugin microservice backends in parallel
 pnpm clean:backends   # Wipe all plugin database records
 pnpm run scaffold-osm-plugin <name>  # Generate a new plugin from scaffold
+pnpm dev:plugins      # File watcher for local-plugins/ directory (runs automatically in dev)
+node packages/wwv-cli/dist/index.js create <name> --local # Scaffold a new local plugin
+node packages/wwv-cli/dist/index.js link <name>           # Promote a local plugin to packages/
 ```
 
 Frontend runs at `http://localhost:3000`.

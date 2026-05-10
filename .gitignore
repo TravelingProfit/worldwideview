@@ -82,6 +82,11 @@ packages/*/dist/
 /local-scripts/
 /public/plugins-local/
 
+# Local plugin development (gitignored workspace)
+local-plugins/*
+!local-plugins/.gitkeep
+!local-plugins/README.md
+
 # git worktrees
 /.worktrees/
 
