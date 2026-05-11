@@ -5,7 +5,10 @@
 let localManifest: string[] | null = null;
 let manifestFetched = false;
 
-const LOCAL_ENGINE_BASE = "http://localhost:5001";
+function getLocalEngineBase() {
+    if (typeof window === "undefined") return "http://localhost:5000";
+    return `${window.location.protocol}//${window.location.hostname}:5000`;
+}
 
 /**
  * Fetch the list of available seeders from a local engine.
@@ -19,7 +22,7 @@ export async function fetchLocalEngineManifest(): Promise<string[] | null> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2000);
 
-    const res = await fetch(`${LOCAL_ENGINE_BASE}/manifest`, {
+    const res = await fetch(`${getLocalEngineBase()}/manifest`, {
       signal: controller.signal,
     });
     clearTimeout(timeout);

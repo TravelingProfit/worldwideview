@@ -40,7 +40,7 @@ importers:
         version: 1.6.1(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
       '@worldwideview/wwv-plugin-fortiguard':
         specifier: workspace:*
-        version: link:packages/wwv-plugin-fortiguard
+        version: link:local-plugins/wwv-plugin-fortiguard
       '@worldwideview/wwv-plugin-sdk':
         specifier: workspace:*
         version: link:packages/wwv-plugin-sdk
@@ -157,6 +157,97 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@20.19.37)(jsdom@28.1.0)(vite@8.0.11(@types/node@20.19.37)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0))
 
+  local-plugins/wwv-plugin-fortiguard:
+    dependencies:
+      '@worldwideview/wwv-plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/wwv-plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
+  local-plugins/wwv-plugin-gps-jamming:
+    dependencies:
+      '@worldwideview/wwv-plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/wwv-plugin-sdk
+      cesium:
+        specifier: ^1.139.0
+        version: 1.141.0
+      h3-js:
+        specifier: ^4.4.0
+        version: 4.4.0
+      lucide-react:
+        specifier: ^0.477.0
+        version: 0.477.0(react@19.2.6)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.6
+      resium:
+        specifier: 1.19.4
+        version: 1.19.4(cesium@1.141.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+    devDependencies:
+      '@vitejs/plugin-react':
+        specifier: ^6.0.1
+        version: 6.0.1(vite@8.0.11(@types/node@20.19.40)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0))
+      vite:
+        specifier: ^8.0.8
+        version: 8.0.11(@types/node@20.19.40)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)
+
+  local-plugins/wwv-plugin-international-sanctions:
+    dependencies:
+      '@worldwideview/wwv-plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/wwv-plugin-sdk
+      lucide-react:
+        specifier: ^0.364.0
+        version: 0.364.0(react@19.2.6)
+    devDependencies:
+      '@vitejs/plugin-react':
+        specifier: ^6.0.1
+        version: 6.0.1(vite@8.0.11(@types/node@20.19.40)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0))
+      vite:
+        specifier: ^8.0.8
+        version: 8.0.11(@types/node@20.19.40)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)
+
+  local-plugins/wwv-plugin-iranwarlive:
+    dependencies:
+      '@worldwideview/wwv-lib-incidents':
+        specifier: workspace:*
+        version: link:../../packages/wwv-lib-incidents
+      '@worldwideview/wwv-plugin-sdk':
+        specifier: ^1.4.10
+        version: 1.5.0(react@19.2.6)
+
+  local-plugins/wwv-plugin-military-aviation:
+    dependencies:
+      '@worldwideview/wwv-lib-aviation':
+        specifier: workspace:*
+        version: link:../../packages/wwv-lib-aviation
+      '@worldwideview/wwv-plugin-sdk':
+        specifier: ^1.4.10
+        version: 1.5.0(react@19.2.6)
+      lucide-react:
+        specifier: '>=0.576.0'
+        version: 0.576.0(react@19.2.6)
+
+  local-plugins/wwv-plugin-nz-traffic-cameras:
+    dependencies:
+      '@worldwideview/wwv-plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/wwv-plugin-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.40
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.0.0
+        version: 1.6.1(@types/node@20.19.40)(jsdom@28.1.0)(lightningcss@1.32.0)(terser@5.47.1)
+
   packages/wwv-cli:
     dependencies:
       archiver:
@@ -175,31 +266,17 @@ importers:
         specifier: ^8.16.0
         version: 8.20.0
 
-  packages/wwv-plugin-fortiguard:
-    dependencies:
-      '@worldwideview/wwv-plugin-sdk':
-        specifier: workspace:*
-        version: link:../wwv-plugin-sdk
-    devDependencies:
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-
-  packages/wwv-plugin-nz-traffic-cameras:
+  packages/wwv-lib-aviation:
     dependencies:
       '@worldwideview/wwv-plugin-sdk':
         specifier: ^1.4.10
         version: 1.5.0(react@19.2.6)
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.40
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-      vitest:
-        specifier: ^1.0.0
-        version: 1.6.1(@types/node@20.19.40)(jsdom@28.1.0)(lightningcss@1.32.0)(terser@5.47.1)
+
+  packages/wwv-lib-incidents:
+    dependencies:
+      '@worldwideview/wwv-plugin-sdk':
+        specifier: ^1.4.10
+        version: 1.5.0(react@19.2.6)
 
   packages/wwv-plugin-sdk:
     dependencies:
@@ -1414,6 +1491,9 @@ packages:
   '@rolldown/pluginutils@1.0.0-rc.3':
     resolution: {integrity: sha512-eybk3TjzzzV97Dlj5c+XrBFW57eTNhzod66y9HrBlzJ6NsCrWCp/2kaPS3K9wJmurBC0Tdw4yPjXKZqlznim3Q==}
 
+  '@rolldown/pluginutils@1.0.0-rc.7':
+    resolution: {integrity: sha512-qujRfC8sFVInYSPPMLQByRh7zhwkGFS4+tyMQ83srV1qrxL4g8E2tyxVVyxd0+8QeBM1mIk9KbWxkegRr76XzA==}
+
   '@rollup/plugin-commonjs@28.0.1':
     resolution: {integrity: sha512-+tNWdlWKbpB3WgBN7ijjYkq9X5uhjmcvyjEght4NmH5fAU++zfQzAJ6wumLS+dNcvwEZhKx2Z+skY8m7v0wGSA==}
     engines: {node: '>=16.0.0 || 14 >= 14.17'}
@@ -1943,6 +2023,19 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+
+  '@vitejs/plugin-react@6.0.1':
+    resolution: {integrity: sha512-l9X/E3cDb+xY3SWzlG1MOGt2usfEHGMNIaegaUGFsLkb3RCn/k8/TOXBcab+OndDI4TBtktT8/9BwwW8Vi9KUQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      '@rolldown/plugin-babel': ^0.1.7 || ^0.2.0
+      babel-plugin-react-compiler: ^1.0.0
+      vite: ^8.0.0
+    peerDependenciesMeta:
+      '@rolldown/plugin-babel':
+        optional: true
+      babel-plugin-react-compiler:
+        optional: true
 
   '@vitest/expect@1.6.1':
     resolution: {integrity: sha512-jXL+9+ZNIJKruofqXuuTClf44eSpcHlgj3CiuNihUF3Ioujtmc0zIa3UJOW5RjDK1YLBJZnWBlPuqhYycLioog==}
@@ -2807,6 +2900,10 @@ packages:
   graphmatch@1.1.1:
     resolution: {integrity: sha512-5ykVn/EXM1hF0XCaWh05VbYvEiOL2lY1kBxZtaYsyvjp7cmWOU1XsAdfQBwClraEofXDT197lFbXOEVMHpvQOg==}
 
+  h3-js@4.4.0:
+    resolution: {integrity: sha512-DvJh07MhGgY2KcC4OeZc8SSyA+ZXpdvoh6uCzGpoKvWtZxJB+g6VXXC1+eWYkaMIsLz7J/ErhOalHCpcs1KYog==}
+    engines: {node: '>=4', npm: '>=3', yarn: '>=1.3.0'}
+
   har-schema@2.0.0:
     resolution: {integrity: sha512-Oqluz6zhGX8cyRaTQlFMPw80bSJVG2x/cFb8ZPhUILGgHka9SsokCCOQgpveePerqidZOrT14ipqfJb7ILcW5Q==}
     engines: {node: '>=4'}
@@ -3149,6 +3246,16 @@ packages:
   lru.min@1.1.4:
     resolution: {integrity: sha512-DqC6n3QQ77zdFpCMASA1a3Jlb64Hv2N2DciFGkO/4L9+q/IpIAuRlKOvCXabtRW6cQf8usbmM6BE/TOPysCdIA==}
     engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
+
+  lucide-react@0.364.0:
+    resolution: {integrity: sha512-eHfdbJExWtTaZ0tBMGtI7PA/MbqV5wt+o4/yitDce17tadH/75Gq3Tq8jSteb3LhLr0eay/j5YUuN4yXjnI3aw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0
+
+  lucide-react@0.477.0:
+    resolution: {integrity: sha512-yCf7aYxerFZAbd8jHJxjwe1j7jEMPptjnaOqdYeirFnEy85cNR3/L+o0I875CYFYya+eEVzZSbNuRk8BZPDpVw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   lucide-react@0.576.0:
     resolution: {integrity: sha512-koNxU14BXrxUfZQ9cUaP0ES1uyPZKYDjk31FQZB6dQ/x+tXk979sVAn9ppZ/pVeJJyOxVM8j1E+8QEuSc02Vug==}
@@ -3663,6 +3770,14 @@ packages:
   require-in-the-middle@8.0.1:
     resolution: {integrity: sha512-QT7FVMXfWOYFbeRBF6nu+I6tr2Tf3u0q8RIEjNob/heKY/nh7drD/k7eeMFmSQgnTtCzLDcCu/XEnpW2wk4xCQ==}
     engines: {node: '>=9.3.0 || >=8.10.0 <9.0.0'}
+
+  resium@1.19.4:
+    resolution: {integrity: sha512-RW0ffHlQUbgqbc0jDaF2Dnor/GKbiz5s5AKdamEKxMJfxiwQNgtgfaKK7UvafFpX25Y2J4DZP1MclTlEQ/5YUw==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      cesium: 1.x
+      react: '>=18.2.0'
+      react-dom: '>=18.2.0'
 
   resium@1.21.0:
     resolution: {integrity: sha512-fxP43kQKXQeDkZ2gwHN08vFvsaKefJ21NeeJMuAeYl/3OmspRpZx4BcfwbfvhsQhLMMmXQreHInfwO8RUoh81A==}
@@ -5463,6 +5578,8 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-rc.3': {}
 
+  '@rolldown/pluginutils@1.0.0-rc.7': {}
+
   '@rollup/plugin-commonjs@28.0.1(rollup@4.60.3)':
     dependencies:
       '@rollup/pluginutils': 5.3.0(rollup@4.60.3)
@@ -5983,6 +6100,11 @@ snapshots:
       vite: 8.0.11(@types/node@20.19.37)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)
     transitivePeerDependencies:
       - supports-color
+
+  '@vitejs/plugin-react@6.0.1(vite@8.0.11(@types/node@20.19.40)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0))':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.0-rc.7
+      vite: 8.0.11(@types/node@20.19.40)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)
 
   '@vitest/expect@1.6.1':
     dependencies:
@@ -6951,6 +7073,8 @@ snapshots:
 
   graphmatch@1.1.1: {}
 
+  h3-js@4.4.0: {}
+
   har-schema@2.0.0: {}
 
   har-validator@5.1.5:
@@ -7272,6 +7396,14 @@ snapshots:
       yallist: 3.1.1
 
   lru.min@1.1.4: {}
+
+  lucide-react@0.364.0(react@19.2.6):
+    dependencies:
+      react: 19.2.6
+
+  lucide-react@0.477.0(react@19.2.6):
+    dependencies:
+      react: 19.2.6
 
   lucide-react@0.576.0(react@19.2.6):
     dependencies:
@@ -7814,6 +7946,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  resium@1.19.4(cesium@1.141.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      cesium: 1.141.0
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+
   resium@1.21.0(cesium@1.141.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
     dependencies:
       cesium: 1.141.0
@@ -8302,6 +8440,21 @@ snapshots:
       tinyglobby: 0.2.16
     optionalDependencies:
       '@types/node': 20.19.37
+      esbuild: 0.27.4
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      terser: 5.47.1
+      tsx: 4.21.0
+
+  vite@8.0.11(@types/node@20.19.40)(esbuild@0.27.4)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0):
+    dependencies:
+      lightningcss: 1.32.0
+      picomatch: 4.0.4
+      postcss: 8.5.14
+      rolldown: 1.0.0-rc.18
+      tinyglobby: 0.2.16
+    optionalDependencies:
+      '@types/node': 20.19.40
       esbuild: 0.27.4
       fsevents: 2.3.3
       jiti: 2.7.0

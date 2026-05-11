@@ -73,14 +73,14 @@ worldwideview/
 │   ├── wwv-plugin-camera/
 │   ├── wwv-plugin-military-aviation/
 │   ├── wwv-plugin-satellite/
-│   ├── wwv-plugin-iranwarlive/   # Includes standalone backend/ microservice
+│   ├── wwv-plugin-iranwarlive/   # Standalone plugin with custom endpoints
 │   └── wwv-plugin-{airports,embassies,lighthouses,nuclear,seaports,spaceports,volcanoes}/
 ├── prisma/                # schema.prisma, migrations/
 ├── public/                # Static assets, Cesium workers, plugin GeoJSON data
 ├── scripts/               # Build scripts (copy-cesium, scaffold-osm-plugin, setup)
 ├── data/                  # PostgreSQL data volume (gitignored)
 ├── Dockerfile             # Multi-stage production build
-├── docker-compose.yml     # Main app + microservice backends
+├── docker-compose.yml     # Main app + data engine runner + local seeders
 └── .agents/               # Agent documentation, rules, skills, workflows
 ```
 
@@ -103,7 +103,7 @@ Visibility Toggle → DataBusSubscriber subscribes to layer via WsClient
 ```
 
 Four plugin architectures exist (All-Bundle Model):
-1. **Data Engine Seeder** — Standalone Fastify container with PostgreSQL microservice or unified seeders (e.g., `iranwarlive-backend`).
+1. **Data Engine Seeder** — Lightweight `seeder.mjs` script executed by the dynamic `wwv-data-engine` runner (previously standalone microservices).
 2. **Dynamic CDN Loaded (Bundle)** — Externally developed plugins dynamically imported at runtime via ES module CDNs (e.g., `unpkg.com` version-pinned URLs).
 3. **Static Compiled (Bundle)** — Static GeoJSON data wrapped into JS bundles via `wwvStaticCompiler` during build/sync (previously `StaticDataPlugin`).
 4. **Active Proxied (Bundle)** — Next.js API routes bundled to provide frontend interactions (previously `DeclarativePlugin`).
@@ -132,17 +132,13 @@ Engine push /stream → DataBusSubscriber WsClient router
   → StackManager (co-located entity grouping)
 ```
 
-### 4.3.1 Split-Routing (Cloud Fallback)
+### 4.3.1 Engine & Seeders Architecture
 
-When a local engine is detected at `localhost:5001`, the frontend fetches its `/manifest` to discover available seeders. Per-plugin routing via `resolveEngineUrl`:
-- Plugin's seeder is in local manifest → `ws://localhost:5001/stream`
-- Plugin's seeder is NOT in local manifest → `wss://dataengine.worldwideview.dev/stream`
+The data engine is a **content-agnostic runner** (`wwv-data-engine`, public) that discovers and executes seeder scripts from a configurable directory.
 
-This enables core contributors running the public (community) engine locally to see local data for their seeders while proprietary sources (aviation, maritime) continue streaming from the cloud.
-
-The data engine uses a **public upstream / private fork** model:
-- `wwv-data-engine` (public) — community seeders, contributors fork and PR here
-- `wwv-data-engine-internal` (private) — all seeders, deploys to Coolify via `git merge upstream/main`
+- **Local Dev**: Engine runs via Docker Compose on port 5000, reading seeders dynamically from `local-seeders/`.
+- **Production**: Engine container on Coolify, seeders are volume-mounted from the `wwv-seeders` (private) repository.
+- **Split-routing**: `resolveEngineUrl` checks `localhost:5000/manifest` for local seeders, falls back to `dataengine.worldwideview.dev` for cloud-hosted ones.
 
 ### 4.4 Rendering Pipeline
 
@@ -235,7 +231,7 @@ Whenever agents generate temporary debugging scripts, test REST endpoints via `.
 | `OPENSKY_CREDENTIALS` | No | Comma-separated `id:secret` pairs for credential rotation |
 | `WWV_BRIDGE_TOKEN` | No | Shared secret for marketplace → WWV install bridge |
 | `WWV_DEMO_ADMIN_SECRET` | No | Demo edition admin password |
-| `IRANWARLIVE_BACKEND_URL` | No | Override for IranWarLive microservice URL |
+| `IRANWARLIVE_BACKEND_URL` | No | Override for IranWarLive custom backend URL |
 
 Secrets go in `.env.local` (gitignored). Non-secrets go in `.env` (committed).
 
@@ -247,12 +243,12 @@ Secrets go in `.env.local` (gitignored). Non-secrets go in `.env` (committed).
 pnpm install          # Install all workspace dependencies
 pnpm run setup        # Generate .env.local with AUTH_SECRET (first-time setup)
 pnpm dev              # Next.js frontend only (auto-runs prisma db push + copy-cesium)
-pnpm dev:all          # Frontend + wwv-data-engine concurrently (normal development)
-pnpm dev:backends     # Run only the data engine in dev mode
+pnpm dev:all          # Frontend + wwv-data-engine (via Docker Compose) concurrently
+pnpm dev:backends     # Starts the local data engine + Redis via Docker Compose
 pnpm build            # Production build
 pnpm test             # Run all Vitest tests (scoped to src/lib, src/core, src/plugins)
 pnpm db:reset         # Reset and re-migrate the frontend database (destructive)
-pnpm start:backends   # Start all plugin microservice backends in parallel
+pnpm start:backends   # Legacy command for standalone Fastify backends
 pnpm clean:backends   # Wipe all plugin database records
 pnpm run scaffold-osm-plugin <name>  # Generate a new plugin from scaffold
 pnpm dev:plugins      # File watcher for local-plugins/ directory (runs automatically in dev)
@@ -270,7 +266,7 @@ Frontend runs at `http://localhost:3000`.
 - **Standalone output**: `next.config.ts` uses `output: "standalone"`.
 - **Cesium assets**: Copied to `public/cesium/` via `scripts/copy-cesium.mjs` at build time, excluded from output tracing.
 - **Prisma Configuration**: `prisma.config.ts` must export a native javascript object instead of dynamically importing CLI wrapper binaries (`prisma/config` or `dotenv`). The standalone Next.js tracer strips CLI devDependencies during the build, which will cause fatal runtime container crashes if imported.
-- **Microservices**: Separate containers defined in `docker-compose.yml`, proxied via `next.config.ts` rewrites.
+- **Data Engine**: The single runner container defined in `docker-compose.yml`, proxied via `next.config.ts` rewrites.
 - **Coolify**: Deployed via Dockerfile builder natively mapping environment variables continuously into the container shell.
 - **Docker volumes**: Ensure PostgreSQL data and Redis volumes are mounted for persistence.
 
@@ -301,8 +297,8 @@ Configured in `next.config.ts` `headers()`:
 | Repo | Purpose |
 |---|---|
 | `worldwideview` | Main application (this repo) |
-| `wwv-data-engine` | Open-source data engine — community seeders (PUBLIC) |
-| `wwv-data-engine-internal` | Proprietary data engine — all seeders (PRIVATE, deployed to Coolify) |
+| `wwv-data-engine` | Generic data engine runner (PUBLIC, runs via Docker) |
+| `wwv-seeders` | Proprietary seeder scripts (PRIVATE, volume-mounted in prod) |
 | `worldwideview-marketplace` | Plugin marketplace web app |
 | `worldwideview-plugins` | Published npm plugin packages |
 | `worldwideview-web` | Marketing / landing page |
@@ -317,6 +313,7 @@ Read the relevant rule file when working in that domain:
 |---|---|---|
 | `monorepo-workflow` | pnpm commands, adding packages, workspace config | `.agents/rules/monorepo-workflow.md` |
 | `plugin-architecture` | Creating/modifying plugins, lifecycle, registration | `.agents/rules/plugin-architecture.md` |
+| `data-engine-architecture` | Data Engine backend seeder loading, pnpm workspace dependencies | `.agents/rules/data-engine-architecture.md` |
 | `cesium-rendering` | Globe rendering, entity types, primitives, LOD, culling | `.agents/rules/cesium-rendering.md` |
 | `state-management` | Zustand slices, store access, plugin settings | `.agents/rules/state-management.md` |
 | `database-migrations` | Prisma schema changes, migrations, PostgreSQL | `.agents/rules/database-migrations.md` |
@@ -356,7 +353,7 @@ Refer to these skill documents for specialized tasks:
 | `worldwideview-plugin-creation` | **Use when creating any plugin** — strict architectural checklist |
 | `plugin-creation-master-guide.md` | Decision matrix for choosing plugin architecture |
 | `osm-static-plugin-creation.md` | Creating static GeoJSON plugins from OpenStreetMap |
-| `microservice-plugin-creation.md` | Building standalone Fastify microservice backends |
+| `microservice-plugin-creation.md` | Legacy guide for standalone Fastify microservices |
 | `database-operations.md` | Prisma schema changes, migrations, database queries |
 | `database-incident-recovery-procedures.md` | Authoritative protocol for safely restoring a broken production database |
 | `index-documentation.md` | Maintaining project documentation index |

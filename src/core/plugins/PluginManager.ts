@@ -11,6 +11,8 @@ import { pollingManager } from "@/core/data/PollingManager";
 import { cacheLayer } from "@/core/data/CacheLayer";
 import { useStore } from "@/core/state/store";
 import { trackEvent } from "@/lib/analytics";
+import { resolveEngineUrl } from "@/core/data/resolveEngineUrl";
+import { fetchLocalEngineManifest } from "@/core/data/engineManifest";
 
 interface ManagedPlugin {
     plugin: WorldPlugin;
@@ -71,8 +73,18 @@ class PluginManager {
             console.debug(`[PluginManager] Injected ${Object.keys(envVars).length} custom env vars into "${plugin.id}"`);
         }
 
+        const wsUrl = resolveEngineUrl(plugin.id);
+        const apiBaseUrl = wsUrl
+            .replace(/\/stream$/, "")
+            .replace(/^ws:\/\//, "http://")
+            .replace(/^wss:\/\//, "https://");
+
         const context: PluginContext = {
-            apiBaseUrl: "",
+            apiBaseUrl,
+            getEngineUrl: () => {
+                const ws = resolveEngineUrl(plugin.id);
+                return ws.replace(/\/stream$/, "").replace(/^ws:\/\//, "http://").replace(/^wss:\/\//, "https://");
+            },
             env: envVars,
             edition,
             timeRange: {
@@ -136,6 +148,9 @@ class PluginManager {
     }
 
     async enablePlugin(pluginId: string): Promise<void> {
+        // Ensure local manifest is fetched so we don't accidentally fall back to cloud if toggled too fast
+        await fetchLocalEngineManifest();
+
         const managed = this.plugins.get(pluginId);
         if (!managed) return;
         managed.enabled = true;

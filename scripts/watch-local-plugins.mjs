@@ -15,14 +15,14 @@ if (!fs.existsSync(LOCAL_PLUGINS_DIR)) {
 let debounceTimeout = null;
 
 function handleFileChange(eventType, filename) {
-    if (filename && (filename.includes("dist") || filename.endsWith(".map"))) return; // ignore build artifacts
+    if (filename && (filename.includes("dist") || filename.includes("node_modules") || filename.endsWith(".map"))) return; // ignore build artifacts
     
     if (debounceTimeout) {
         clearTimeout(debounceTimeout);
     }
     
     debounceTimeout = setTimeout(async () => {
-        console.log(`\n[watch] Change detected in local plugins. Syncing...`);
+        console.log(`\n[watch] Change detected in local plugins (file: ${filename}). Syncing...`);
         try {
             await syncAll();
         } catch (err) {
