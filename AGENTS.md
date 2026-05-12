@@ -37,78 +37,17 @@ Our primary design, feature-set, and operational layout goal is to mimic the str
 
 ## 4. Architecture Patterns
 
-### 4.1 Plugin System (Core Abstraction)
+> [!NOTE]
+> See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the human-facing architecture deep-dive — plugin system, state management, data pipeline, data engine & seeders, rendering pipeline, and edition system.
 
-Every data source is a **plugin** implementing the `WorldPlugin` interface from `@worldwideview/wwv-plugin-sdk`. The lifecycle utilizes a real-time WebSocket Firehose pipeline:
+Key invariants agents MUST respect:
 
-```text
-PluginRegistry.register() → PluginManager.registerPlugin()
-  → plugin.initialize(context)
-  
-Visibility Toggle → DataBusSubscriber subscribes to layer via WsClient
-  → Engine responds with instantaneous websocket snapshots over /stream
-  → WsClient pipes to DataBus.emit("dataUpdated", WsStreamPayload) 
-  → Store → EntityRenderer → Globe
-```
-
-Four plugin architectures exist (All-Bundle Model):
-1. **Data Engine Seeder** — Lightweight `seeder.mjs` script executed by the dynamic `wwv-data-engine` runner (previously standalone microservices).
-2. **Dynamic CDN Loaded (Bundle)** — Externally developed plugins dynamically imported at runtime via ES module CDNs (e.g., `unpkg.com` version-pinned URLs).
-3. **Static Compiled (Bundle)** — Static GeoJSON data wrapped into JS bundles via `wwvStaticCompiler` during build/sync (previously `StaticDataPlugin`).
-4. **Active Proxied (Bundle)** — Next.js API routes bundled to provide frontend interactions (previously `DeclarativePlugin`).
-
-All plugins are now dynamically imported at runtime as ES module bundles via `loadPluginFromManifest` utilizing `import(/* webpackIgnore: true */ entry)`. The legacy `StaticDataPlugin` and `DeclarativePlugin` runtimes are fully deprecated.
-
-Plugin types are re-exported from SDK through `src/core/plugins/PluginTypes.ts` and `PluginManifest.ts` — **source of truth is always `@worldwideview/wwv-plugin-sdk`**.
-
-### 4.2 State Management
-
-Zustand store with **nine slices**: `globe`, `layers`, `timeline`, `ui`, `filter`, `data`, `config`, `favorites`, `geojson`. Each slice is in its own file under `src/core/state/`.
-
-- Access via `useStore` hook or `useStore.getState()` outside React
-- Plugin settings stored in `configSlice.dataConfig.pluginSettings`
-- Polling intervals stored in `configSlice.dataConfig.pollingIntervals`
-
-### 4.3 Data Pipeline
-
-```text
-Engine push /stream → DataBusSubscriber WsClient router
-  → WsClient.handleMessage() → DataBus.emit("websocketData") 
-  → DataBusSubscriber → _hydrateSnapshot() → Store.entitiesByPlugin
-  → GlobeView (memoized visible entities)
-  → EntityRenderer (billboard/point primitives)
-  → AnimationLoop (horizon culling, hover/selection)
-  → StackManager (co-located entity grouping)
-```
-
-### 4.3.1 Engine & Seeders Architecture
-
-The data engine is a **content-agnostic runner** (`wwv-data-engine`, public) that discovers and executes seeder scripts from a configurable directory.
-
-- **Local Dev**: Engine runs via Docker Compose on port 5000, reading seeders dynamically from `local-seeders/` (split into `community` and `private` tiers).
-- **Production**: Engine container on Coolify, downloads release bundles from `wwv-seeders-community` and `wwv-seeders-private` on startup and unzips them into `/app/seeders`.
-- **Split-routing**: `resolveEngineUrl` prioritizes the **Local Dev Engine (localhost:5001)** for local testing (following 12-Factor App methodology), falling back to cloud-hosted endpoints.
-- **Agnostic Frontend Architecture**: WorldWideView is a completely agnostic renderer. It has absolutely no concept of a "unified" Data Engine. If 30 plugins require 30 different WebSocket servers, the application will blindly open 30 connections.
-- **Self-Contained Plugins**: Each plugin is a self-contained package and **MUST explicitly declare its own `streamUrl` in its manifest or config**. Do NOT assume the frontend acts as a unified pipe. It just so happens that our default plugins share the `wwv-data-engine` backend, but the platform is 100% decentralized.
-- **Dual-Output Engine**: Each seeder automatically exposes a WebSocket stream (`/stream`) and a REST API endpoint (`/api/[plugin-id]`).
-- **Scope Boundary (99% vs 1%)**: The engine handles standard caching and broadcasting (99%). Plugins requiring complex on-demand compute (1%) must host their own custom backend.
-
-### 4.4 Rendering Pipeline
-
-- **Primitive-based**: Uses `PointPrimitiveCollection`, `BillboardCollection`, `LabelCollection` — NOT Cesium Entity API
-- **Chunked processing**: Large datasets (10k+) rendered via `ChunkedProcessor`
-- **LOD system**: Model-type entities promoted to 3D models at close range (`useModelRendering`)
-- **Horizon culling**: Manual dot-product calculation against Earth radius (NOT depth testing)
-- **Stack/Spiderifier**: `StackManager` groups co-located entities; `stackAnimation` handles expansion
-
-### 4.5 Edition System
-
-Three editions controlled by `NEXT_PUBLIC_WWV_EDITION`:
-- **`local`** — Self-hosted, full features, auth enabled
-- **`cloud`** — Managed cloud instance, full features
-- **`demo`** — Public demo, auth disabled, optional admin via `WWV_DEMO_ADMIN_SECRET`
-
-Feature flags derived from edition in `src/core/edition.ts`.
+- **Plugin source of truth**: `@worldwideview/wwv-plugin-sdk` — never define plugin types locally.
+- **All-Bundle Model**: every plugin (seeder, CDN-loaded, static-compiled, active-proxied) is dynamically imported via `loadPluginFromManifest` using `import(/* webpackIgnore: true */ entry)`. Legacy `StaticDataPlugin` / `DeclarativePlugin` runtimes are deprecated.
+- **Agnostic frontend**: the renderer has no concept of a "unified" data engine. Each plugin **MUST declare its own `streamUrl`** in its manifest or config; do not assume one shared pipe.
+- **Nine Zustand slices** under `src/core/state/`: `globe`, `layers`, `timeline`, `ui`, `filter`, `data`, `config`, `favorites`, `geojson`. Access via `useStore` in React, `useStore.getState()` elsewhere.
+- **Primitive-based rendering** (not Cesium Entity API). Point/Billboard/Label/Polyline collections only. Never mix `size`/`outlineWidth`/`outlineColor` onto billboard entities — GPU silently clips.
+- **Three editions** controlled by `NEXT_PUBLIC_WWV_EDITION` (`local` / `cloud` / `demo`); feature flags derived in `src/core/edition.ts`.
 
 ---
 

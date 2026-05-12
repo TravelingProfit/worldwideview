@@ -167,7 +167,7 @@ This project is licensed under the Elastic License 2.0 - see the [LICENSE](LICEN
 Explore our comprehensive documentation suite for detailed engineering insights:
 
 - **[Project Overview](docs/project-overview.md)**: High-level value proposition and technology stack.
-- **[Architecture](docs/ARCHITECTURE.md)**: DataBus event stream and Zustand state management.
+- **[Architecture](docs/ARCHITECTURE.md)**: Plugin system, state management, data pipeline, and Cesium rendering deep-dive.
 - **[Build System](docs/build-system.md)**: Monorepo structure, Next.js standalone output, and Docker builds.
 - **[Development](docs/development.md)**: Coding conventions and common implementation patterns.
 - **[Testing](docs/testing.md)**: Vitest setup and coverage targets.
