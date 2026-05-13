@@ -5,6 +5,7 @@ import { tflAdapter } from "./tfl";
 import { ny511Adapter } from "./ny511";
 import { wsdotAdapter } from "./wsdot";
 import { ncdotAdapter } from "./ncdot";
+import { osmSurveillanceAdapter } from "./osm-surveillance";
 
 /**
  * All registered adapters. To add a new source, add an import + push the
@@ -19,6 +20,7 @@ export const ALL_ADAPTERS: CameraAdapter[] = [
     ny511Adapter,
     wsdotAdapter,
     ncdotAdapter,
+    osmSurveillanceAdapter,
 ];
 
 const ADAPTERS_BY_ID: Map<string, CameraAdapter> = new Map(
