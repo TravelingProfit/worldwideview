@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
         const upstream = await safeFetch(targetUrl, {
             headers: { "User-Agent": "WorldWideView/1.0" },
             timeout: MAX_STREAM_DURATION_MS,
+            maxSize: 100 * 1024 * 1024, // 100MB for streams
         });
 
         if (!upstream.ok) {

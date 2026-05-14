@@ -1,7 +1,5 @@
-import dns from "dns";
-import util from "util";
-
-const lookupAsync = util.promisify(dns.lookup);
+import dns from "dns/promises";
+import { fetch, Agent } from "undici";
 
 export function isPrivateIP(ip: string): boolean {
     if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(ip)) return true;
@@ -31,21 +29,33 @@ export async function safeFetch(urlStr: string, options: FetchOptions = {}): Pro
     
     const url = new URL(urlStr);
     
-    // For direct IPs in URL
     if (isPrivateIP(url.hostname)) {
         throw new Error("SSRF Error: Private IP provided in URL.");
     }
 
-    // DNS IP Pinning check
+    let resolvedIp: string;
+    let resolvedFamily: 4 | 6;
     try {
-        const lookupResult = await lookupAsync(url.hostname);
-        if (isPrivateIP(lookupResult.address)) {
+        const lookupResult = await dns.lookup(url.hostname);
+        resolvedIp = lookupResult.address;
+        resolvedFamily = lookupResult.family;
+        if (isPrivateIP(resolvedIp)) {
             throw new Error("SSRF Error: Host resolves to a private IP.");
         }
     } catch (err: any) {
+        if (err.message.includes("SSRF")) throw err;
         throw new Error(`SSRF Error: DNS resolution failed - ${err.message}`);
     }
 
+    const customAgent = new Agent({
+        connect: {
+            lookup: (hostname, opts, callback) => {
+                callback(null, [{ address: resolvedIp, family: resolvedFamily }]);
+            }
+        }
+    });
+
+    const maxSize = options.maxSize || 5 * 1024 * 1024;
     const timeout = options.timeout || 10000;
     
     const controller = new AbortController();
@@ -54,11 +64,45 @@ export async function safeFetch(urlStr: string, options: FetchOptions = {}): Pro
     try {
         const response = await fetch(urlStr, {
             ...options,
+            dispatcher: customAgent,
             redirect: "manual",
             signal: controller.signal as any
         });
         
-        return response;
+        if (response.body) {
+            let totalSize = 0;
+            const reader = response.body.getReader();
+            const stream = new ReadableStream({
+                async pull(controller) {
+                    try {
+                        const { done, value } = await reader.read();
+                        if (done) {
+                            controller.close();
+                            return;
+                        }
+                        totalSize += value.byteLength;
+                        if (totalSize > maxSize) {
+                            controller.error(new Error("SSRF Error: Response size exceeded maximum limit."));
+                            reader.cancel();
+                            return;
+                        }
+                        controller.enqueue(value);
+                    } catch (err) {
+                        controller.error(err);
+                    }
+                },
+                cancel() {
+                    reader.cancel();
+                }
+            });
+            
+            return new Response(stream, {
+                status: response.status,
+                headers: response.headers as any
+            });
+        }
+        
+        return response as unknown as Response;
     } finally {
         clearTimeout(id);
     }
