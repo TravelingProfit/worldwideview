@@ -146,7 +146,7 @@ label: label || "Camera Stream",
             // For random third-party iframe providers, proxy their HTML to bypass X-Frame-Options/CSP restrictions.
             // We exclude major platforms (YouTube, Twitch, Vimeo) because they officially support embedding
             // and their complex players might break if HTML is proxied.
-            const majorPlatformHosts = ["youtube.com", "youtu.be", "twitch.tv", "vimeo.com"];
+            const majorPlatformHosts = ["youtube.com", "youtu.be", "youtube-nocookie.com", "twitch.tv", "vimeo.com"];
             let isMajorPlatformHost = false;
             try {
                 const { hostname } = new URL(embedUrl);
