@@ -163,9 +163,17 @@ label: label || "Camera Stream",
                 embedUrl = getProxiedIframeUrl(embedUrl);
             }
 
+            // Proxied iframes are served from our own origin, so without sandboxing the
+            // upstream HTML could reach window.parent and exfiltrate localStorage / DOM.
+            // Omit allow-same-origin so the iframe gets a unique opaque origin; scripts
+            // still run (video players keep working) but cannot touch the host app.
+            // Major platforms (YouTube/Twitch/Vimeo) bypass the proxy and load from their
+            // own cross-origin host, where the browser's same-origin policy already isolates them.
+            const isProxiedIframe = !isMajorPlatformHost;
             return (
               <iframe
                 src={embedUrl}
+                sandbox={isProxiedIframe ? "allow-scripts allow-popups allow-presentation" : undefined}
                 style={{
  position: "absolute", inset: 0, width: "100%", height: "100%", border: "none"
 }}
