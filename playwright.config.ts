@@ -1,9 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const MARKETPLACE_DIR = path.resolve(__dir, '../worldwideview-marketplace');
+const hasMarketplace = fs.existsSync(MARKETPLACE_DIR);
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -16,6 +18,16 @@ export default defineConfig({
   globalSetup: './tests/global.setup.ts',
   globalTeardown: './tests/global.teardown.ts',
   testDir: './tests',
+  // web-auth.spec.ts targets worldwideview-web (https://wwv.local:3001) — use playwright.web.config.ts
+  // marketplace-from-instance.spec.ts uses playwright.marketplace.config.ts; full-flow requires marketplace repo
+  // marketplace-redirect-handshake.spec.ts and marketplace-sign-out.spec.ts require marketplace.wwv.local:3002
+  //   — use playwright.cross-app.config.ts for these cross-origin handshake tests
+  testIgnore: [
+    '**/web-auth.spec.ts',
+    '**/marketplace-from-instance.spec.ts',
+    '**/marketplace-redirect-handshake.spec.ts',
+    '**/marketplace-sign-out.spec.ts',
+  ],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -78,13 +90,15 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
-    {
+    // Only start marketplace when the repo is checked out alongside worldwideview.
+    // In CI the marketplace dir does not exist — omitting it prevents spawn ENOENT.
+    ...(hasMarketplace ? [{
       command: 'pnpm dev',
       cwd: MARKETPLACE_DIR,
       env: { PORT: '3002' },
       url: 'http://localhost:3002',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
-    },
+    }] : []),
   ],
 });
