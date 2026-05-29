@@ -147,7 +147,10 @@ export function PersonalApiKeysSection() {
 
     useEffect(() => {
         fetch("/api/api-keys")
-            .then((r) => r.json())
+            .then((r) => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
+            })
             .then((data) => setKeys(data.keys ?? []))
             .catch(() => setError("Could not load keys. Try closing and reopening this panel."))
             .finally(() => setLoading(false));

@@ -20,7 +20,7 @@
 ## Phases
 
 - [ ] **Phase 16: API Key Auth Foundation** - generic transport-agnostic API keys: UserApiKey DB model, bcrypt prefix-hash storage, reusable `authenticateApiKey()` middleware, "Keys & Access" modal key CRUD + reveal-once UI
-- [ ] **Phase 17: MCP Server Foundation** - mcp-handler endpoint, auth middleware, Nginx config, stateless operation, + "Connect your agent" helper (per-client config + prompt template)
+- [ ] **Phase 17: MCP Server Foundation** - raw `@modelcontextprotocol/sdk` Streamable HTTP endpoint in a Next 16 route handler, Bearer auth gate, stateless operation, Coolify/Nginx runbook, + "Connect your agent" helper (per-client config + prompt template)
 - [ ] **Phase 18: Globe State Sync + Sessions** - useGlobeStatePush hook, heartbeat, globe://state and globe://sessions resources
 - [ ] **Phase 19: Globe Command Bridge** - WebSocket relay, useGlobeCommandBridge hook, per-session Redis pub/sub routing
 - [ ] **Phase 20: Data Query Tools** - search_entities, get_entities_in_region, get_entity_details, get_plugin_data (parallel with Phase 19)
@@ -56,8 +56,12 @@
   2. An unauthenticated request returns HTTP 401 with a JSON-RPC 2.0 error shape
   3. No `McpServer` instance is cached between requests -- each request creates a fresh one (stateless confirmed)
   4. The Coolify Nginx config includes `X-Accel-Buffering: no` and extended `proxy_read_timeout`; a 60-second streaming connection holds open without disconnect
-  5. The "API & MCP Access" section renders a per-client connection helper (Claude Code CLI command; Claude Desktop / Cursor / VS Code `mcpServers` JSON with Bearer header; generic Manual block) + a copy-paste "prompt for your agent"; the secret never appears in a URL/deep-link query
-**Plans**: TBD
+  5. The "API & MCP Access" section renders a per-client connection helper (Claude Desktop / Cursor / VS Code `mcpServers` JSON with Bearer header; generic Manual block; Claude Code CLI deferred as "coming soon") + a copy-paste "prompt for your agent"; the secret never appears in a URL/deep-link query
+**Library decision**: raw `@modelcontextprotocol/sdk@^1.29.0` (NOT mcp-handler) + the SDK's `WebStandardStreamableHTTPServerTransport` inside a Next 16 App Router route handler — confirmed against SDK 1.29.0 published types, NO custom server.ts needed in Phase 17 (per `BATCH-DECISIONS-17-21.md` / `17-CONTEXT.md`).
+**Plans**: 3 plans (3 waves)
+  - [x] 17-01-PLAN.md — Wave 0: RED test scaffolds (route auth/edition/stateless/streaming-header tests) + raw-SDK transport runtime spike
+  - [ ] 17-02-PLAN.md — Wave 1: install SDK + createMcpServer() factory + gated stateless /api/mcp route handler (turns Wave 0 green)
+  - [ ] 17-03-PLAN.md — Wave 2: ConnectAgentHelper UI (per-client config + prompt) + Coolify/Nginx runbook + semver bump to 2.26.0
 
 ### Phase 18: Globe State Sync + Sessions
 **Goal**: Claude can read what is on the globe and which browser tabs are open, with accurate live data
@@ -119,7 +123,7 @@ Phases execute in numeric order, with one parallel branch: 16 -> 17 -> { 18 -> 1
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 16. API Key Auth Foundation | v1.2 | 3/4 | In Progress|  |
-| 17. MCP Server Foundation | v1.2 | 0/? | Not started | - |
+| 17. MCP Server Foundation | v1.2 | 1/3 | In Progress|  |
 | 18. Globe State Sync + Sessions | v1.2 | 0/? | Not started | - |
 | 19. Globe Command Bridge | v1.2 | 0/? | Not started | - |
 | 20. Data Query Tools | v1.2 | 0/? | Not started | - |

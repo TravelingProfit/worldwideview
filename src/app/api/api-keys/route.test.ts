@@ -70,6 +70,9 @@ describe("GET /api/api-keys", () => {
 
         expect(res.status).toBe(401);
         expect(body).toHaveProperty("error");
+        // Must NOT include a `keys` field — callers that do `data.keys ?? []` without
+        // checking r.ok would silently show an empty list instead of an auth error.
+        expect(body).not.toHaveProperty("keys");
     });
 
     it("response never contains hashedSecret field (security invariant)", async () => {
