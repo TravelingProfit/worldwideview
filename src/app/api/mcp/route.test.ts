@@ -172,9 +172,10 @@ describe("MCP-03: 401 on missing or invalid Bearer token", () => {
 
 describe("MCP-04: Demo edition gate (isDemo=true) returns 403 BEFORE auth runs", () => {
     it("POST returns 403 JSON-RPC body and does NOT call authenticateApiKey", async () => {
+        vi.resetModules();
         vi.doMock("@/core/edition", () => ({ isDemo: true }));
-        // Re-import so the flipped isDemo is picked up
-        const { POST: demoPost } = await import("./route?demo-post");
+        // Re-import after resetModules so the flipped isDemo is picked up
+        const { POST: demoPost } = await import("./route");
         const req = makeRequest("POST", { authorization: "Bearer wwv_valid.token" });
         vi.mocked(authenticateApiKey).mockResolvedValue({ userId: "user-123", keyId: "key-1" });
 
@@ -191,11 +192,13 @@ describe("MCP-04: Demo edition gate (isDemo=true) returns 403 BEFORE auth runs",
         expect(vi.mocked(authenticateApiKey)).not.toHaveBeenCalled();
 
         vi.doUnmock("@/core/edition");
+        vi.resetModules();
     });
 
     it("GET returns 403 JSON-RPC body and does NOT call authenticateApiKey", async () => {
+        vi.resetModules();
         vi.doMock("@/core/edition", () => ({ isDemo: true }));
-        const { GET: demoGet } = await import("./route?demo-get");
+        const { GET: demoGet } = await import("./route");
         const req = makeRequest("GET", { authorization: "Bearer wwv_valid.token" });
         vi.mocked(authenticateApiKey).mockResolvedValue({ userId: "user-123", keyId: "key-1" });
 
@@ -211,6 +214,7 @@ describe("MCP-04: Demo edition gate (isDemo=true) returns 403 BEFORE auth runs",
         expect(vi.mocked(authenticateApiKey)).not.toHaveBeenCalled();
 
         vi.doUnmock("@/core/edition");
+        vi.resetModules();
     });
 });
 

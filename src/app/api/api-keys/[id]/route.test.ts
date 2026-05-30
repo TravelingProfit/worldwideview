@@ -45,7 +45,7 @@ describe("DELETE /api/api-keys/[id]", () => {
         vi.mocked(prisma.userApiKey.deleteMany).mockResolvedValue({ count: 1 } as never);
 
         const req = new Request("http://localhost/api/api-keys/key-id-1");
-        const res = await DELETE(req, { params: { id: "key-id-1" } });
+        const res = await DELETE(req, { params: Promise.resolve({ id: "key-id-1" }) });
         const body = await res.json();
 
         expect(res.status).toBe(200);
@@ -57,7 +57,7 @@ describe("DELETE /api/api-keys/[id]", () => {
         vi.mocked(prisma.userApiKey.deleteMany).mockResolvedValue({ count: 0 } as never);
 
         const req = new Request("http://localhost/api/api-keys/foreign-key-id");
-        const res = await DELETE(req, { params: { id: "foreign-key-id" } });
+        const res = await DELETE(req, { params: Promise.resolve({ id: "foreign-key-id" }) });
         const body = await res.json();
 
         expect(res.status).toBe(404);
@@ -68,7 +68,7 @@ describe("DELETE /api/api-keys/[id]", () => {
         mockAuth.mockResolvedValue(null);
 
         const req = new Request("http://localhost/api/api-keys/key-id-1");
-        const res = await DELETE(req, { params: { id: "key-id-1" } });
+        const res = await DELETE(req, { params: Promise.resolve({ id: "key-id-1" }) });
 
         expect(res.status).toBe(401);
     });
@@ -77,7 +77,7 @@ describe("DELETE /api/api-keys/[id]", () => {
         vi.mocked(prisma.userApiKey.deleteMany).mockResolvedValue({ count: 1 } as never);
 
         const req = new Request("http://localhost/api/api-keys/key-id-1");
-        await DELETE(req, { params: { id: "key-id-1" } });
+        await DELETE(req, { params: Promise.resolve({ id: "key-id-1" }) });
 
         expect(vi.mocked(prisma.userApiKey.deleteMany)).toHaveBeenCalledWith(
             expect.objectContaining({

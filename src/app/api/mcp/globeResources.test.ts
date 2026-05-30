@@ -43,8 +43,8 @@ describe("registerGlobeResources — resource registration", () => {
         const server = makeFakeServer();
         registerGlobeResources(server as never, { userId: "u1" });
 
-        const uris = server.registerResource.mock.calls.map(
-            ([uriOrTemplate]: [string | { uriTemplate: string }]) =>
+        const uris = (server.registerResource.mock.calls as [string | { uriTemplate: string }, ...unknown[]][]).map(
+            ([uriOrTemplate]) =>
                 typeof uriOrTemplate === "string" ? uriOrTemplate : uriOrTemplate.uriTemplate,
         );
         expect(uris.some((u: string) => u.includes("state"))).toBe(true);
@@ -54,8 +54,8 @@ describe("registerGlobeResources — resource registration", () => {
         const server = makeFakeServer();
         registerGlobeResources(server as never, { userId: "u1" });
 
-        const uris = server.registerResource.mock.calls.map(
-            ([uriOrTemplate]: [string | { uriTemplate: string }]) =>
+        const uris = (server.registerResource.mock.calls as [string | { uriTemplate: string }, ...unknown[]][]).map(
+            ([uriOrTemplate]) =>
                 typeof uriOrTemplate === "string" ? uriOrTemplate : uriOrTemplate.uriTemplate,
         );
         expect(uris.some((u: string) => u.includes("sessions"))).toBe(true);
@@ -65,8 +65,8 @@ describe("registerGlobeResources — resource registration", () => {
         const server = makeFakeServer();
         registerGlobeResources(server as never, { userId: "u1" });
 
-        const uris = server.registerResource.mock.calls.map(
-            ([uriOrTemplate]: [string | { uriTemplate: string }]) =>
+        const uris = (server.registerResource.mock.calls as [string | { uriTemplate: string }, ...unknown[]][]).map(
+            ([uriOrTemplate]) =>
                 typeof uriOrTemplate === "string" ? uriOrTemplate : uriOrTemplate.uriTemplate,
         );
         expect(uris.some((u: string) => u.includes("layers"))).toBe(true);
@@ -98,8 +98,8 @@ describe("globe://state handler (RSRC-02)", () => {
         registerGlobeResources(server as never, { userId: "u1" });
 
         // Find the state resource handler (the call whose URI/template contains "state")
-        const stateCall = server.registerResource.mock.calls.find(
-            ([uriOrTemplate]: [string | { uriTemplate: string }]) => {
+        const stateCall = (server.registerResource.mock.calls as [string | { uriTemplate: string }, ...unknown[]][]).find(
+            ([uriOrTemplate]) => {
                 const s = typeof uriOrTemplate === "string" ? uriOrTemplate : uriOrTemplate.uriTemplate;
                 return s.includes("state");
             },
@@ -134,8 +134,8 @@ describe("globe://state handler (RSRC-02)", () => {
         // Register with a different userId to confirm scoping
         registerGlobeResources(server as never, { userId: "other-user" });
 
-        const stateCall = server.registerResource.mock.calls.find(
-            ([uriOrTemplate]: [string | { uriTemplate: string }]) => {
+        const stateCall = (server.registerResource.mock.calls as [string | { uriTemplate: string }, ...unknown[]][]).find(
+            ([uriOrTemplate]) => {
                 const s = typeof uriOrTemplate === "string" ? uriOrTemplate : uriOrTemplate.uriTemplate;
                 return s.includes("state");
             },
@@ -167,8 +167,8 @@ describe("globe://sessions handler (RSRC-03)", () => {
         const server = makeFakeServer();
         registerGlobeResources(server as never, { userId: "u1" });
 
-        const sessionsCall = server.registerResource.mock.calls.find(
-            ([uriOrTemplate]: [string | { uriTemplate: string }]) => {
+        const sessionsCall = (server.registerResource.mock.calls as [string | { uriTemplate: string }, ...unknown[]][]).find(
+            ([uriOrTemplate]) => {
                 const s = typeof uriOrTemplate === "string" ? uriOrTemplate : uriOrTemplate.uriTemplate;
                 return s.includes("sessions");
             },
@@ -221,8 +221,8 @@ describe("globe://layers handler (RSRC-04)", () => {
         const server = makeFakeServer();
         registerGlobeResources(server as never, { userId: "u1" });
 
-        const layersCall = server.registerResource.mock.calls.find(
-            ([uriOrTemplate]: [string | { uriTemplate: string }]) => {
+        const layersCall = (server.registerResource.mock.calls as [string | { uriTemplate: string }, ...unknown[]][]).find(
+            ([uriOrTemplate]) => {
                 const s = typeof uriOrTemplate === "string" ? uriOrTemplate : uriOrTemplate.uriTemplate;
                 return s.includes("layers");
             },
@@ -247,8 +247,8 @@ describe("globe://layers handler (RSRC-04)", () => {
         const server = makeFakeServer();
         registerGlobeResources(server as never, { userId: "scoped-user" });
 
-        const layersCall = server.registerResource.mock.calls.find(
-            ([uriOrTemplate]: [string | { uriTemplate: string }]) => {
+        const layersCall = (server.registerResource.mock.calls as [string | { uriTemplate: string }, ...unknown[]][]).find(
+            ([uriOrTemplate]) => {
                 const s = typeof uriOrTemplate === "string" ? uriOrTemplate : uriOrTemplate.uriTemplate;
                 return s.includes("layers");
             },

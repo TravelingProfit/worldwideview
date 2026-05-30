@@ -10,8 +10,9 @@ import { apiKeyManagementLimiter, getClientIp } from "@/lib/rateLimiters";
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } },
+    { params }: { params: Promise<{ id: string }> },
 ) {
+    const { id } = await params;
     if (isDemo) {
         return NextResponse.json({ error: "Not available in demo edition" }, { status: 403 });
     }
@@ -29,7 +30,7 @@ export async function DELETE(
         // Using deleteMany (not delete) so a non-matching id returns count 0
         // instead of throwing a NotFound error, eliminating TOCTOU.
         const deleted = await prisma.userApiKey.deleteMany({
-            where: { id: params.id, userId: session.user.id },
+            where: { id, userId: session.user.id },
         });
 
         if (deleted.count === 0) {
