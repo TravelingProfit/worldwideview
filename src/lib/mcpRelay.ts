@@ -134,17 +134,12 @@ export async function enqueueToolInvocation(
     const oKey = ownerKey(userId, sessionId, invocation.requestId);
 
     try {
-        // Write invocation to the queue list (RPUSH + EXPIRE).
-        // NOTE: These two commands and the ownership SET below are not atomic.
-        // A partial failure (e.g. RPUSH succeeds but SET fails) leaves an invocation
-        // without an owner record; postToolResult will reject the orphaned result.
-        // Atomic pipeline (MULTI/EXEC) would eliminate this window but requires
-        // RedisMultiChain.set(), which is not currently on the narrow interface.
-        await redisExt.rpush(qKey, json);
-        await redisExt.expire(qKey, INVOCATION_TTL_SECONDS);
-
-        // Write the ownership record so postToolResult can verify ownership.
-        await redisExt.set(oKey, "1", "EX", OWNER_TTL_SECONDS);
+        await redisExt
+            .multi()
+            .rpush(qKey, json)
+            .expire(qKey, INVOCATION_TTL_SECONDS)
+            .set(oKey, "1", "EX", OWNER_TTL_SECONDS)
+            .exec();
     } catch (err) {
         console.error("[mcpRelay] enqueueToolInvocation failed:", err);
         return { rejected: true, reason: "enqueue failed" };
@@ -239,8 +234,7 @@ export async function postToolResult(
     const rKey = resultKey(userId, sessionId, requestId);
     try {
         // RPUSH to the result list; the server's blpop on the same key unblocks.
-        await redisExt.rpush(rKey, json);
-        await redisExt.expire(rKey, RESULT_TTL_SECONDS);
+        await redisExt.multi().rpush(rKey, json).expire(rKey, RESULT_TTL_SECONDS).exec();
     } catch (err) {
         console.error("[mcpRelay] postToolResult write failed:", err);
     }

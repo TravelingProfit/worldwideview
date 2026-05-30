@@ -7,6 +7,7 @@ export interface RedisMultiChain {
     del(key: string): this;
     rpush(key: string, ...values: string[]): this;
     expire(key: string, seconds: number): this;
+    set(key: string, value: string, exFlag: "EX", ttlSeconds: number): this;
     exec(): Promise<Array<[Error | null, unknown]>>;
 }
 

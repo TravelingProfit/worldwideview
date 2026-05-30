@@ -27,7 +27,22 @@ import {
 
 // vi.mock is hoisted above variable declarations; objects declared with vi.hoisted()
 // are accessible inside the factory function.
-const { mockRedis } = vi.hoisted(() => {
+const { mockRedis, mockMultiChain } = vi.hoisted(() => {
+    // Chainable multi() mock: each method returns the chain; exec resolves successfully.
+    const mockMultiChain = {
+        rpush: vi.fn(),
+        expire: vi.fn(),
+        set: vi.fn(),
+        lrange: vi.fn(),
+        del: vi.fn(),
+        exec: vi.fn().mockResolvedValue([]),
+    };
+    mockMultiChain.rpush.mockReturnValue(mockMultiChain);
+    mockMultiChain.expire.mockReturnValue(mockMultiChain);
+    mockMultiChain.set.mockReturnValue(mockMultiChain);
+    mockMultiChain.lrange.mockReturnValue(mockMultiChain);
+    mockMultiChain.del.mockReturnValue(mockMultiChain);
+
     const mockRedis = {
         set: vi.fn(),
         get: vi.fn(),
@@ -35,8 +50,9 @@ const { mockRedis } = vi.hoisted(() => {
         expire: vi.fn(),
         blpop: vi.fn(),
         exists: vi.fn(),
+        multi: vi.fn().mockReturnValue(mockMultiChain),
     };
-    return { mockRedis };
+    return { mockRedis, mockMultiChain };
 });
 
 vi.mock("@/lib/redis", () => ({
@@ -57,6 +73,17 @@ function allFirstArgs(mockFn: ReturnType<typeof vi.fn>): string[] {
 
 beforeEach(() => {
     vi.resetAllMocks();
+
+    // Restore multi chain fluent API after resetAllMocks() clears mockReturnValue.
+    mockMultiChain.rpush.mockReturnValue(mockMultiChain);
+    mockMultiChain.expire.mockReturnValue(mockMultiChain);
+    mockMultiChain.set.mockReturnValue(mockMultiChain);
+    mockMultiChain.lrange.mockReturnValue(mockMultiChain);
+    mockMultiChain.del.mockReturnValue(mockMultiChain);
+    mockMultiChain.exec.mockResolvedValue([]);
+    mockRedis.multi.mockReturnValue(mockMultiChain);
+
+    // Direct-call mocks for blpop, exists, get (not on the multi chain).
     mockRedis.set.mockResolvedValue("OK");
     mockRedis.rpush.mockResolvedValue(1);
     mockRedis.expire.mockResolvedValue(1);
@@ -70,17 +97,15 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("enqueueToolInvocation writes session-scoped invocation (RELAY-01)", () => {
-    it("calls rpush or set with a key that includes userId and sessionId", async () => {
+    it("calls rpush on the multi chain with a key that includes userId and sessionId", async () => {
         await enqueueToolInvocation("u1", "s1", {
             requestId: "req-abc",
             tool: "aviation__decode_squawk",
             args: { squawk: "7700" },
         });
 
-        const allKeys = [
-            ...allFirstArgs(mockRedis.rpush),
-            ...allFirstArgs(mockRedis.set),
-        ];
+        // enqueueToolInvocation uses multi().rpush().expire().set().exec() atomically.
+        const allKeys = allFirstArgs(mockMultiChain.rpush);
         const scopedKey = allKeys.find((k) => k.includes("u1") && k.includes("s1"));
         expect(scopedKey).toBeDefined();
     });
@@ -92,18 +117,13 @@ describe("enqueueToolInvocation writes session-scoped invocation (RELAY-01)", ()
             args: { squawk: "7700" },
         });
 
-        const rpushCalls = mockRedis.rpush.mock.calls as unknown[][];
-        const setCalls = mockRedis.set.mock.calls as unknown[][];
-        let payloadJson: string | undefined;
-
-        if (rpushCalls.length > 0) {
-            payloadJson = rpushCalls[0][1] as string;
-        } else if (setCalls.length > 0) {
-            payloadJson = setCalls[0][1] as string;
-        }
+        // Payload is the second argument to chain.rpush(key, json).
+        const rpushCalls = mockMultiChain.rpush.mock.calls as unknown[][];
+        expect(rpushCalls.length).toBeGreaterThan(0);
+        const payloadJson = rpushCalls[0][1] as string;
 
         expect(payloadJson).toBeDefined();
-        const payload: unknown = JSON.parse(payloadJson!);
+        const payload: unknown = JSON.parse(payloadJson);
         expect(payload).toMatchObject({
             requestId: "req-abc",
             tool: "aviation__decode_squawk",
@@ -123,9 +143,10 @@ describe("all Redis keys scoped {userId}:{sessionId} (SEC-01)", () => {
             args: {},
         });
 
+        // Both rpush (queue key) and set (owner key) go through the multi chain.
         const allKeys = [
-            ...allFirstArgs(mockRedis.rpush),
-            ...allFirstArgs(mockRedis.set),
+            ...allFirstArgs(mockMultiChain.rpush),
+            ...allFirstArgs(mockMultiChain.set),
         ];
         const scopedKey = allKeys.find((k) => k.includes("alice") && k.includes("sess-X"));
         expect(scopedKey).toBeDefined();
@@ -150,10 +171,8 @@ describe("all Redis keys scoped {userId}:{sessionId} (SEC-01)", () => {
 
         await postToolResult("u2", "s2", "r2", { data: "ok" });
 
-        const allKeys = [
-            ...allFirstArgs(mockRedis.rpush),
-            ...allFirstArgs(mockRedis.set),
-        ];
+        // postToolResult uses multi().rpush().expire().exec() atomically.
+        const allKeys = allFirstArgs(mockMultiChain.rpush);
         const scopedKey = allKeys.find((k) => k.includes("u2") && k.includes("s2"));
         expect(scopedKey).toBeDefined();
     });
@@ -224,8 +243,9 @@ describe("enqueueToolInvocation arg size cap (SEC-04)", () => {
         });
 
         expect(result.rejected).toBe(true);
-        expect(mockRedis.rpush).not.toHaveBeenCalled();
-        expect(mockRedis.set).not.toHaveBeenCalled();
+        // Size guard fires before multi() is called -- chain must stay untouched.
+        expect(mockRedis.multi).not.toHaveBeenCalled();
+        expect(mockMultiChain.rpush).not.toHaveBeenCalled();
     });
 
     it("accepts args within the size cap", async () => {

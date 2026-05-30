@@ -21,6 +21,8 @@
 
 import { useEffect, useRef } from "react";
 import { pluginManager } from "@/core/plugins/PluginManager";
+import { getNamespacedTools } from "@/lib/mcp/pluginTools";
+import type { PluginToolsEntry } from "@/lib/mcp/pluginTools";
 import type { CatalogTool } from "@/lib/mcpSessionCatalog";
 
 /** Re-publish interval in ms -- mirrors the 19a session-heartbeat cadence. */
@@ -41,35 +43,36 @@ interface CatalogPayload {
  * Only includes plugins whose manifests declare at least one mcpTool.
  */
 function collectCatalog(): { tools: CatalogTool[]; capabilities: string[] } {
-    const tools: CatalogTool[] = [];
-    const capabilitySet = new Set<string>();
-
     const allPlugins = pluginManager.getAllPlugins();
 
-    for (const managed of allPlugins) {
+    const entries: PluginToolsEntry[] = allPlugins.flatMap((managed) => {
         const pluginId = managed.plugin.id;
         const manifest = pluginManager.getManifest(pluginId);
-        if (!manifest) continue;
+        if (!manifest) return [];
+        return [
+            {
+                pluginId,
+                mcpTools: manifest.mcpTools,
+                mcpCapabilities: manifest.mcpCapabilities,
+            },
+        ];
+    });
 
-        const mcpTools = manifest.mcpTools;
-        const mcpCapabilities = manifest.mcpCapabilities ?? [];
+    const namespacedTools = getNamespacedTools(entries);
 
-        if (!mcpTools || mcpTools.length === 0) continue;
-
-        for (const cap of mcpCapabilities) {
+    const capabilitySet = new Set<string>();
+    const tools: CatalogTool[] = namespacedTools.map((nt) => {
+        for (const cap of nt.capabilities) {
             capabilitySet.add(cap);
         }
-
-        for (const tool of mcpTools) {
-            tools.push({
-                namespacedName: `${pluginId}__${tool.name}`,
-                pluginId,
-                description: tool.description,
-                inputSchema: tool.inputSchema as Record<string, unknown>,
-                mcpCapabilities: mcpCapabilities.length > 0 ? mcpCapabilities : undefined,
-            });
-        }
-    }
+        return {
+            namespacedName: nt.namespacedName,
+            pluginId: nt.pluginId,
+            description: nt.description,
+            inputSchema: nt.inputSchema,
+            mcpCapabilities: nt.capabilities.length > 0 ? nt.capabilities : undefined,
+        };
+    });
 
     return { tools, capabilities: Array.from(capabilitySet) };
 }

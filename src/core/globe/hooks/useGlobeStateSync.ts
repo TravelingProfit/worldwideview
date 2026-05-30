@@ -21,6 +21,17 @@ async function pushState(sessionId: string): Promise<void> {
 export function useGlobeStateSync(sessionId: string): void {
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const initialPushDoneRef = useRef(false);
+
+    // Fire one immediate push as soon as a valid sessionId is available so that
+    // MCP clients calling resolveActiveSessionId don't see a null ZSET entry
+    // during the window before the first store change or heartbeat fires.
+    useEffect(() => {
+        if (!sessionId) return;
+        if (initialPushDoneRef.current) return;
+        initialPushDoneRef.current = true;
+        void pushState(sessionId);
+    }, [sessionId]);
 
     useEffect(() => {
         // No-op until we have a stable session id (pre-mount or SSR)

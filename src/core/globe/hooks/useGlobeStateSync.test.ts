@@ -55,6 +55,10 @@ describe("useGlobeStateSync", () => {
     it("subscribes to the store and POSTs to /api/globe/state after 500ms debounce", async () => {
         renderHook(() => useGlobeStateSync("s1"));
 
+        // Drain the immediate initial push that fires on mount before asserting debounce behavior.
+        await act(async () => {});
+        (fetch as ReturnType<typeof vi.fn>).mockClear();
+
         // Trigger a store change
         act(() => { mockStore.__triggerChange(); });
 
@@ -75,6 +79,10 @@ describe("useGlobeStateSync", () => {
     it("collapses multiple rapid changes within 500ms into a single fetch (debounce)", async () => {
         renderHook(() => useGlobeStateSync("s1"));
 
+        // Drain the immediate initial push that fires on mount before asserting debounce behavior.
+        await act(async () => {});
+        (fetch as ReturnType<typeof vi.fn>).mockClear();
+
         // Trigger several rapid store changes
         act(() => { mockStore.__triggerChange(); });
         act(() => { vi.advanceTimersByTime(100); });
@@ -91,6 +99,10 @@ describe("useGlobeStateSync", () => {
 
     it("fires a heartbeat fetch after 10s even without store changes", async () => {
         renderHook(() => useGlobeStateSync("s1"));
+
+        // Drain the immediate initial push that fires on mount before asserting heartbeat behavior.
+        await act(async () => {});
+        (fetch as ReturnType<typeof vi.fn>).mockClear();
 
         // No store changes — only advance 10s for the heartbeat
         await act(async () => { vi.advanceTimersByTime(10_000); });

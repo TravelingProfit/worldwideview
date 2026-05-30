@@ -1,12 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth as getSession } from "@/lib/auth";
 import { authenticateApiKey } from "@/lib/apiKeyAuth";
 import { getEntitiesInRegion } from "@/lib/data-query/service";
+import { resolveEdition } from "@/core/edition";
 
 export async function GET(request: NextRequest) {
-    const auth = await authenticateApiKey(request);
-    if (!auth) {
+    const currentEdition = resolveEdition(process.env.NEXT_PUBLIC_WWV_EDITION);
+    if (currentEdition === "demo") {
+        return NextResponse.json({ error: "Demo mode" }, { status: 403 });
+    }
+
+    // Dual-auth: NextAuth session cookie PRIMARY, Bearer API key FALLBACK.
+    // userId is resolved exclusively from the auth result -- never from the URL.
+    let userId: string | null = null;
+
+    const session = await getSession();
+    if (session?.user?.id) {
+        userId = session.user.id;
+    } else {
+        const apiKeyAuth = await authenticateApiKey(request);
+        if (apiKeyAuth) {
+            userId = apiKeyAuth.userId;
+        }
+    }
+
+    if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Entity data is global/public (plugin-sourced, shared across all users), so userId
+    // gates access (authn) but is intentionally not a query filter -- there is no per-user
+    // entity ownership to scope by.
 
     const { searchParams } = request.nextUrl;
     const north = parseFloat(searchParams.get("north") ?? "");
@@ -23,7 +47,8 @@ export async function GET(request: NextRequest) {
 
     const pluginId = searchParams.get("pluginId") ?? undefined;
     const rawLimit = searchParams.get("limit");
-    const limit = Math.min(parseInt(rawLimit ?? "100", 10), 1000);
+    const parsedLimit = rawLimit !== null ? parseInt(rawLimit, 10) : NaN;
+    const limit = Math.min(Number.isNaN(parsedLimit) ? 100 : parsedLimit, 1000);
 
     try {
         const entities = await getEntitiesInRegion({ north, south, east, west, pluginId, limit });

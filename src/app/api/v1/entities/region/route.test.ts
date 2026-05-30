@@ -4,7 +4,9 @@ import {
 import { NextRequest } from "next/server";
 import { GET } from "./route";
 
-// Route does not exist yet — this file is intentionally RED (Wave 0 TDD scaffold)
+vi.mock("@/lib/auth", () => ({
+    auth: vi.fn().mockResolvedValue(null),
+}));
 
 vi.mock("@/lib/apiKeyAuth", () => ({
     authenticateApiKey: vi.fn(),
