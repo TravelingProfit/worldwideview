@@ -157,3 +157,13 @@ worldwideview.code-workspace
 /playwright-report/
 /test-results/
 /playwright/.auth/
+/.playwright-mcp/
+
+# MCP client config -- contains a live API key, never commit
+.mcp.json
+
+# Root-level UAT / debug scratch artifacts
+/uat-*.png
+/step*.png
+/mcp-test-*.png
+/api-keys-response.json

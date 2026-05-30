@@ -14,6 +14,7 @@
 
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { latSchema, lonSchema } from "@/lib/mcp/coordinateSchemas";
 import {
     searchEntities,
     getEntitiesInRegion,
@@ -40,7 +41,7 @@ export function registerDataQueryTools(server: McpServer): void {
         "search_entities",
         {
             description:
-                "Search for geospatial entities by name across active plugins. Returns up to 20 results with id, name, latitude, longitude, and pluginId.",
+                "Search for geospatial entities by name across active plugins. Returns up to 20 results with id, name, latitude, longitude, and pluginId. An empty result (count 0) means no match or no live data, not an error.",
             inputSchema: {
                 query: z.string().describe("Search query string"),
                 pluginId: z.string().optional().describe("Restrict search to a specific plugin"),
@@ -74,12 +75,12 @@ export function registerDataQueryTools(server: McpServer): void {
         "get_entities_in_region",
         {
             description:
-                "Find entities within a geographic bounding box. Returns up to 100 results.",
+                "Find entities within a geographic bounding box. Returns up to 100 results. An empty result (count 0) means no match or no live data, not an error.",
             inputSchema: {
-                north: z.number().describe("Northern latitude bound"),
-                south: z.number().describe("Southern latitude bound"),
-                east: z.number().describe("Eastern longitude bound"),
-                west: z.number().describe("Western longitude bound"),
+                north: latSchema.describe("Northern latitude bound"),
+                south: latSchema.describe("Southern latitude bound"),
+                east: lonSchema.describe("Eastern longitude bound"),
+                west: lonSchema.describe("Western longitude bound"),
                 pluginId: z.string().optional().describe("Restrict to a specific plugin"),
                 limit: z.number().optional().describe("Maximum results to return (max 100)"),
             },
@@ -146,7 +147,7 @@ export function registerDataQueryTools(server: McpServer): void {
         "get_plugin_data",
         {
             description:
-                "Get the current data snapshot (all entities) for a named plugin.",
+                "Get the current data snapshot (all entities) for a named plugin. An empty result (count 0) means no match or no live data, not an error.",
             inputSchema: {
                 pluginId: z.string().describe("The plugin identifier"),
             },

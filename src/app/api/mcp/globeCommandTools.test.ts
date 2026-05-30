@@ -12,7 +12,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { registerGlobeCommandTools } from "./globeCommandTools";
+import { registerGlobeCommandTools, latSchema, lonSchema, altSchema } from "./globeCommandTools";
+import { isValidGlobeCommand } from "@/core/globe/types/GlobeCommand";
+import { latSchema as sharedLatSchema, lonSchema as sharedLonSchema } from "@/lib/mcp/coordinateSchemas";
 
 // ---------------------------------------------------------------------------
 // Mock @/lib/globeCommandQueue
@@ -207,5 +209,173 @@ describe("userId source invariant (TOOL-05)", () => {
 
         const [calledUserId] = mockEnqueue.mock.calls[0] as [string, string, unknown];
         expect(calledUserId).toBe("ctx-user");
+    });
+});
+
+// ---------------------------------------------------------------------------
+// TOOL-06: coordinate schema bounds validation (latSchema / lonSchema / altSchema)
+// ---------------------------------------------------------------------------
+
+describe("coordinate schema bounds (TOOL-06)", () => {
+    // latSchema
+    it("latSchema accepts valid latitude", () => {
+        expect(latSchema.safeParse(35.6762).success).toBe(true);
+        expect(latSchema.safeParse(0).success).toBe(true);
+        expect(latSchema.safeParse(-90).success).toBe(true);
+        expect(latSchema.safeParse(90).success).toBe(true);
+    });
+
+    it("latSchema rejects lat=999", () => {
+        expect(latSchema.safeParse(999).success).toBe(false);
+    });
+
+    it("latSchema rejects lat=-91", () => {
+        expect(latSchema.safeParse(-91).success).toBe(false);
+    });
+
+    it("latSchema rejects NaN", () => {
+        expect(latSchema.safeParse(NaN).success).toBe(false);
+    });
+
+    it("latSchema rejects Infinity", () => {
+        expect(latSchema.safeParse(Infinity).success).toBe(false);
+    });
+
+    // lonSchema
+    it("lonSchema accepts valid longitude", () => {
+        expect(lonSchema.safeParse(139.6503).success).toBe(true);
+        expect(lonSchema.safeParse(-180).success).toBe(true);
+        expect(lonSchema.safeParse(180).success).toBe(true);
+    });
+
+    it("lonSchema rejects lon=181", () => {
+        expect(lonSchema.safeParse(181).success).toBe(false);
+    });
+
+    it("lonSchema rejects lon=-181", () => {
+        expect(lonSchema.safeParse(-181).success).toBe(false);
+    });
+
+    it("lonSchema rejects NaN", () => {
+        expect(lonSchema.safeParse(NaN).success).toBe(false);
+    });
+
+    // altSchema
+    it("altSchema accepts valid altitude", () => {
+        expect(altSchema.safeParse(2000000).success).toBe(true);
+        expect(altSchema.safeParse(1).success).toBe(true);
+    });
+
+    it("altSchema rejects alt=0", () => {
+        expect(altSchema.safeParse(0).success).toBe(false);
+    });
+
+    it("altSchema rejects negative altitude", () => {
+        expect(altSchema.safeParse(-100).success).toBe(false);
+    });
+
+    it("altSchema rejects Infinity", () => {
+        expect(altSchema.safeParse(Infinity).success).toBe(false);
+    });
+
+    it("altSchema rejects NaN", () => {
+        expect(altSchema.safeParse(NaN).success).toBe(false);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// TOOL-07: isValidGlobeCommand rejects out-of-range coordinates
+// ---------------------------------------------------------------------------
+
+describe("isValidGlobeCommand coordinate bounds (TOOL-07)", () => {
+    it("accepts a valid pan command", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: 35.6762, lon: 139.6503, alt: 2000000 })).toBe(true);
+    });
+
+    it("rejects pan with lat=999", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: 999, lon: 0, alt: 1000 })).toBe(false);
+    });
+
+    it("rejects pan with lat=-91", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: -91, lon: 0, alt: 1000 })).toBe(false);
+    });
+
+    it("rejects pan with lon=181", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: 0, lon: 181, alt: 1000 })).toBe(false);
+    });
+
+    it("rejects pan with lon=-181", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: 0, lon: -181, alt: 1000 })).toBe(false);
+    });
+
+    it("rejects pan with alt=0", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: 0, lon: 0, alt: 0 })).toBe(false);
+    });
+
+    it("rejects pan with negative alt", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: 0, lon: 0, alt: -500 })).toBe(false);
+    });
+
+    it("rejects pan with NaN lat", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: NaN, lon: 0, alt: 1000 })).toBe(false);
+    });
+
+    it("rejects pan with Infinity alt", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: 0, lon: 0, alt: Infinity })).toBe(false);
+    });
+
+    it("accepts focusEntity with valid lat/lon", () => {
+        expect(isValidGlobeCommand({ type: "focusEntity", lat: 35.6762, lon: 139.6503 })).toBe(true);
+    });
+
+    it("accepts focusEntity with no lat/lon (entity-id only)", () => {
+        expect(isValidGlobeCommand({ type: "focusEntity", entityId: "ent-1" })).toBe(true);
+    });
+
+    it("rejects focusEntity with out-of-range lat", () => {
+        expect(isValidGlobeCommand({ type: "focusEntity", lat: 91, lon: 0 })).toBe(false);
+    });
+
+    it("rejects focusEntity with out-of-range lon", () => {
+        expect(isValidGlobeCommand({ type: "focusEntity", lat: 0, lon: 200 })).toBe(false);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// TOOL-08: isValidGlobeCommand rejects NaN heading (isNumber requires isFinite)
+// ---------------------------------------------------------------------------
+
+describe("isValidGlobeCommand NaN heading rejection (TOOL-08)", () => {
+    it("rejects a pan command with heading: NaN", () => {
+        expect(isValidGlobeCommand({ type: "pan", lat: 0, lon: 0, alt: 1000, heading: NaN })).toBe(false);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// TOOL-09: get_entities_in_region schema bounds (latSchema / lonSchema shared module)
+// ---------------------------------------------------------------------------
+
+describe("get_entities_in_region coordinate schema bounds (TOOL-09)", () => {
+    it("rejects north=999 (out-of-range latitude)", () => {
+        expect(sharedLatSchema.safeParse(999).success).toBe(false);
+    });
+
+    it("rejects west=-200 (out-of-range longitude)", () => {
+        expect(sharedLonSchema.safeParse(-200).success).toBe(false);
+    });
+
+    it("accepts a valid bounding box", () => {
+        expect(sharedLatSchema.safeParse(51.5).success).toBe(true);  // north
+        expect(sharedLatSchema.safeParse(48.8).success).toBe(true);  // south
+        expect(sharedLonSchema.safeParse(-0.1).success).toBe(true);  // west
+        expect(sharedLonSchema.safeParse(2.3).success).toBe(true);   // east
+    });
+
+    it("rejects NaN for a latitude bound", () => {
+        expect(sharedLatSchema.safeParse(NaN).success).toBe(false);
+    });
+
+    it("rejects Infinity for a longitude bound", () => {
+        expect(sharedLonSchema.safeParse(Infinity).success).toBe(false);
     });
 });

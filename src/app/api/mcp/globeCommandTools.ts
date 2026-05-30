@@ -20,6 +20,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { enqueueGlobeCommand, resolveActiveSessionId } from "@/lib/globeCommandQueue";
 import { TIME_WINDOW_VALUES } from "@/core/globe/types/GlobeCommand";
 import type { GlobeCommand } from "@/core/globe/types/GlobeCommand";
+import { latSchema, lonSchema, altSchema } from "@/lib/mcp/coordinateSchemas";
+
+// Re-export so existing tests that import from this module continue to work.
+export { latSchema, lonSchema, altSchema };
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -64,13 +68,13 @@ export function registerGlobeCommandTools(
             description:
                 "Fly the globe camera to a geographic position. Provide lat/lon/alt (metres). Optional heading, pitch, and animation duration.",
             inputSchema: {
-                lat: z.number().describe("Latitude in decimal degrees"),
-                lon: z.number().describe("Longitude in decimal degrees"),
-                alt: z.number().describe("Altitude in metres above the ellipsoid"),
+                lat: latSchema.describe("Latitude in decimal degrees [-90, 90]"),
+                lon: lonSchema.describe("Longitude in decimal degrees [-180, 180]"),
+                alt: altSchema.describe("Altitude in metres above the ellipsoid (must be > 0)"),
                 heading: z.number().optional().describe("Camera heading in degrees (0 = north)"),
                 pitch: z.number().optional().describe("Camera pitch in degrees (-90 = straight down)"),
                 duration: z.number().optional().describe("Flight animation duration in seconds"),
-                sessionId: z.string().optional().describe("Target globe session id (defaults to the user's active session)"),
+                sessionId: z.string().optional().describe("Target globe session id. Obtain valid ids by reading the globe://sessions resource. Omit to target your most-recently-active browser tab."),
             },
         },
         async (args) => {
@@ -105,9 +109,9 @@ export function registerGlobeCommandTools(
                 "entityId is accepted but entity-id-to-coordinate resolution is not yet wired; always include lat/lon for a reliable camera move.",
             inputSchema: {
                 entityId: z.string().optional().describe("Entity id (informational; coordinate resolution not yet supported -- also provide lat/lon)"),
-                lat: z.number().optional().describe("Latitude to focus on"),
-                lon: z.number().optional().describe("Longitude to focus on"),
-                sessionId: z.string().optional().describe("Target globe session id (defaults to the user's active session)"),
+                lat: latSchema.optional().describe("Latitude to focus on [-90, 90]"),
+                lon: lonSchema.optional().describe("Longitude to focus on [-180, 180]"),
+                sessionId: z.string().optional().describe("Target globe session id. Obtain valid ids by reading the globe://sessions resource. Omit to target your most-recently-active browser tab."),
             },
         },
         async (args) => {
@@ -139,7 +143,7 @@ export function registerGlobeCommandTools(
             inputSchema: {
                 layerId: z.string().describe("The plugin/layer identifier to toggle"),
                 enabled: z.boolean().optional().describe("True to enable, false to disable, omit to toggle"),
-                sessionId: z.string().optional().describe("Target globe session id (defaults to the user's active session)"),
+                sessionId: z.string().optional().describe("Target globe session id. Obtain valid ids by reading the globe://sessions resource. Omit to target your most-recently-active browser tab."),
             },
         },
         async (args) => {
@@ -171,7 +175,7 @@ export function registerGlobeCommandTools(
                 currentTime: z.string().optional().describe("ISO 8601 datetime to seek to"),
                 timeWindow: z.enum(TIME_WINDOW_VALUES).optional().describe("Time window: one of '1h', '6h', '24h', '48h', '7d'"),
                 isPlaybackMode: z.boolean().optional().describe("True to start playback, false to pause"),
-                sessionId: z.string().optional().describe("Target globe session id (defaults to the user's active session)"),
+                sessionId: z.string().optional().describe("Target globe session id. Obtain valid ids by reading the globe://sessions resource. Omit to target your most-recently-active browser tab."),
             },
         },
         async (args) => {

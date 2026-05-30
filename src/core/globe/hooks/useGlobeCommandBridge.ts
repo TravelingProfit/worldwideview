@@ -90,9 +90,19 @@ export function useGlobeCommandBridge(sessionId: string): void {
             }
         };
 
-        es.onerror = (err: Event) => {
-            console.error("[useGlobeCommandBridge] EventSource error:", err);
-            // EventSource auto-reconnects; no manual action needed.
+        es.onerror = () => {
+            // onerror fires on the normal stream close too: the server ends each
+            // stream at MAX_DURATION_MS (~16s), after which EventSource transparently
+            // reconnects (readyState === CONNECTING). Only a terminal failure leaves
+            // readyState === CLOSED -- e.g. a 401 because EventSource authenticates via
+            // the NextAuth session cookie (it cannot send a Bearer header), so an
+            // unauthenticated tab fails permanently rather than reconnecting.
+            if (es.readyState === EventSource.CLOSED) {
+                console.error(
+                    "[useGlobeCommandBridge] SSE stream closed without retry -- " +
+                        "is this tab signed in? EventSource auths via session cookie, not Bearer.",
+                );
+            }
         };
 
         return () => {

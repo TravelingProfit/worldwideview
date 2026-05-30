@@ -45,6 +45,20 @@ export async function GET(request: NextRequest) {
         );
     }
 
+    if (north < -90 || north > 90 || south < -90 || south > 90) {
+        return NextResponse.json(
+            { error: "north and south must be within [-90, 90]" },
+            { status: 400 },
+        );
+    }
+
+    if (east < -180 || east > 180 || west < -180 || west > 180) {
+        return NextResponse.json(
+            { error: "east and west must be within [-180, 180]" },
+            { status: 400 },
+        );
+    }
+
     const pluginId = searchParams.get("pluginId") ?? undefined;
     const rawLimit = searchParams.get("limit");
     const parsedLimit = rawLimit !== null ? parseInt(rawLimit, 10) : NaN;

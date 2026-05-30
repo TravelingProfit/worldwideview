@@ -9,7 +9,19 @@ export type GlobeCommand =
     | { type: "setTimeline"; currentTime?: string; timeWindow?: TimeWindowLiteral; isPlaybackMode?: boolean };
 
 function isNumber(v: unknown): v is number {
-    return typeof v === "number";
+    return typeof v === "number" && isFinite(v);
+}
+
+function isValidLat(v: unknown): v is number {
+    return isNumber(v) && v >= -90 && v <= 90;
+}
+
+function isValidLon(v: unknown): v is number {
+    return isNumber(v) && v >= -180 && v <= 180;
+}
+
+function isValidAlt(v: unknown): v is number {
+    return isNumber(v) && v > 0;
 }
 
 function isString(v: unknown): v is string {
@@ -56,9 +68,9 @@ export function isValidGlobeCommand(obj: unknown): obj is GlobeCommand {
     switch (cmd["type"]) {
         case "pan":
             return (
-                isNumber(cmd["lat"]) &&
-                isNumber(cmd["lon"]) &&
-                isNumber(cmd["alt"]) &&
+                isValidLat(cmd["lat"]) &&
+                isValidLon(cmd["lon"]) &&
+                isValidAlt(cmd["alt"]) &&
                 isOptionalNumber(cmd["duration"]) &&
                 isOptionalNumber(cmd["heading"]) &&
                 isOptionalNumber(cmd["pitch"])
@@ -67,8 +79,8 @@ export function isValidGlobeCommand(obj: unknown): obj is GlobeCommand {
         case "focusEntity":
             return (
                 isOptionalString(cmd["entityId"]) &&
-                isOptionalNumber(cmd["lat"]) &&
-                isOptionalNumber(cmd["lon"])
+                (cmd["lat"] === undefined || isValidLat(cmd["lat"])) &&
+                (cmd["lon"] === undefined || isValidLon(cmd["lon"]))
             );
 
         case "toggleLayer":
