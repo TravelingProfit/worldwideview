@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Location Intelligence
-status: executing
-last_updated: "2026-05-31T00:31:29.921Z"
+status: verifying
+last_updated: "2026-05-31T01:19:13.164Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 4
-  completed_plans: 1
-  percent: 0
+  completed_phases: 2
+  total_plans: 7
+  completed_plans: 7
+  percent: 50
 ---
 
 # Project State
@@ -20,17 +20,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-31)
 
 **Core value:** A single globe that shows everything happening in the world right now, extensible by anyone via plugins, and controllable by any AI agent via MCP.
-**Current focus:** Phase 22 — geocoding-favorites
+**Current focus:** Phase 23 — entity-filtering
 
 ## Current Position
 
-Phase: 22 (geocoding-favorites) — EXECUTING
-Plan: 2 of 4
-Status: Ready to execute
+Phase: 23 (entity-filtering) — COMPLETE
+Plan: 3 of 3 (23-01, 23-02, 23-03 all landed)
+Status: Phase 23 COMPLETE — registerFilterTools wired into POST /api/mcp; whole-project tsc clean, full Vitest suite (738 tests) GREEN, pnpm build OK. INTG version bump (1.3.0) deferred to Phase 24.
 Last activity: 2026-05-31
 Resume file: None
 
-Progress: [███░░░░░░░] 25%
+Progress: [█████░░░░░] 50% (2 of 4 phases complete)
 
 ## Key Decisions (carried from v1.2)
 

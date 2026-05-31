@@ -22,7 +22,7 @@
 import { NextResponse } from "next/server";
 import { auth as getSession } from "@/lib/auth";
 import { authenticateApiKey } from "@/lib/apiKeyAuth";
-import { publishSessionCatalog, readSessionCatalog } from "@/lib/mcpSessionCatalog";
+import { publishSessionCatalog } from "@/lib/mcpSessionCatalog";
 import type { SessionCatalog } from "@/lib/mcpSessionCatalog";
 import { resolveActiveSessionId } from "@/lib/globeCommandQueue";
 import { globeCommandsLimiter, getClientIp } from "@/lib/rateLimiters";
@@ -172,6 +172,3 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json({ ok: true });
 }
-
-// Export readSessionCatalog for use by the MCP route (re-export avoids extra import path)
-export { readSessionCatalog };

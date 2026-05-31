@@ -13,10 +13,10 @@
 
 ### Filtering
 
-- [ ] **FILT-01**: Agent can call `set_filter(pluginId, filters)` to push a live filter to the globe via the SSE command bridge; browser applies it to Zustand filterSlice
-- [ ] **FILT-02**: Agent can call `clear_filter(pluginId?)` to remove all active filters or per-plugin filters via SSE bridge
-- [ ] **FILT-03**: Agent can call `get_plugin_filters(pluginId)` to retrieve filterable fields declared by a plugin via session catalog extension
-- [ ] **FILT-04**: Agent can pass optional `filters` params to the existing `search_entities` tool to receive pre-filtered results inline (no set_filter state dependency)
+- [x] **FILT-01**: Agent can call `set_filter(pluginId, filters)` to push a live filter to the globe via the SSE command bridge; browser applies it to Zustand filterSlice
+- [x] **FILT-02**: Agent can call `clear_filter(pluginId?)` to remove all active filters or per-plugin filters via SSE bridge
+- [x] **FILT-03**: Agent can call `get_plugin_filters(pluginId)` to retrieve filterable fields declared by a plugin via session catalog extension
+- [x] **FILT-04**: Agent can pass optional `filters` params to the existing `search_entities` tool to receive pre-filtered results inline (no set_filter state dependency)
 
 ### Favorites
 
@@ -75,10 +75,10 @@
 | FAV-03 | Phase 22 | Pending |
 | SAFE-01 | Phase 22 | Complete |
 | SAFE-02 | Phase 22 | Pending |
-| FILT-01 | Phase 23 | Pending |
-| FILT-02 | Phase 23 | Pending |
-| FILT-03 | Phase 23 | Pending |
-| FILT-04 | Phase 23 | Pending |
+| FILT-01 | Phase 23 | Complete |
+| FILT-02 | Phase 23 | Complete |
+| FILT-03 | Phase 23 | Complete |
+| FILT-04 | Phase 23 | Complete |
 | INTG-01 | Phase 24 | Pending |
 | INTG-02 | Phase 24 | Pending |
 | DOC-01 | Phase 25 | Pending |
