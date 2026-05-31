@@ -21,14 +21,19 @@ A single globe that shows everything happening in the world right now, extensibl
 
 **Tech stack additions:** ioredis singleton, @modelcontextprotocol/sdk, ReadableStream SSE, Redis ZSET/LIST/SET for state/commands/catalog
 
-## Current Milestone: v1.3 Location Intelligence
+## Current Milestone: v1.4 Agentic Intelligence
 
-**Goal:** Extend the MCP server with geocoding, rich entity filtering, and entity favorites so AI agents can find places, drill into plugin data, and bookmark tracked objects.
+**Goal:** Transform the WWV MCP server from a collection of atomic tools into a well-instructed, investigation-capable AI assistant -- one that knows what it has, reasons over the globe, and delivers both globe actions and prose reports.
 
 **Target features:**
-- Geocoding + fly-to (2 new MCP tools: `geocode_location` + `fly_to`)
-- Entity filtering via MCP (generic baseline + plugin-declared filter extensions)
-- Entity favorites: `save_favorite`, `list_favorites`, `remove_favorite` (per-user, PostgreSQL-backed)
+- Server `instructions` field + workflow sequences (agent oriented from first connection)
+- MCP Prompts for named workflows (`orient-globe`, `investigate`)
+- Full 6-component tool description rewrite across all 15+ existing tools
+- `emptyReason` field in all query responses (distinguishes "no data" from "plugin not loaded")
+- `list_available_plugins` tool (agent checks before querying)
+- `get_globe_context` tool (full orientation snapshot in one call)
+- `investigate_area` compound tool (geocode + check + query + act + report)
+- `update_favorite` tool (completes full CRUD lifecycle for favorites)
 
 **Backlog (deferred):**
 - PLG-01/PLG-02: list_plugins() + install_plugin() marketplace tools (backlog 999.1/999.2)
@@ -58,13 +63,17 @@ A single globe that shows everything happening in the world right now, extensibl
 - Data query tools across all active plugins - v1.2
 - Plugin-contributed namespaced MCP tools via frontend relay - v1.2
 
-### Active (v1.3 Location Intelligence)
+### Active (v1.4 Agentic Intelligence)
 
-- [ ] geocode_location(query) MCP tool returning {lat, lng, name, bbox} via Nominatim/OSM
-- [ ] fly_to(lat, lng, altitude?) MCP tool panning globe camera via SSE command bridge
-- [ ] Generic entity filters (type, region, timeRange, status) via MCP set_filter/clear_filter
-- [ ] Plugin-declared filter manifest extension + get_plugin_filters(pluginId) MCP tool
-- [ ] UserFavorite Prisma model + save_favorite / list_favorites / remove_favorite MCP tools
+- [ ] Server `instructions` field with role-framing and canonical workflow sequences
+- [ ] MCP Prompts: `orient-globe` and `investigate` named workflow templates
+- [ ] 6-component tool description rewrite for all command, query, and v1.3 tools
+- [ ] `emptyReason` field on all query tool responses
+- [ ] `get_plugin_filters` returns explicit `{available: false}` when plugin not active
+- [ ] `list_available_plugins` MCP tool (streaming plugins + entity counts)
+- [ ] `get_globe_context` MCP tool (full orientation snapshot)
+- [ ] `investigate_area` compound MCP tool (geocode + check + query + act + prose report)
+- [ ] `update_favorite` MCP tool (complete CRUD lifecycle for favorites)
 
 ### Out of Scope
 
@@ -103,4 +112,4 @@ A single globe that shows everything happening in the world right now, extensibl
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-05-31 after v1.3 milestone start*
+*Last updated: 2026-05-31 after v1.4 milestone start*

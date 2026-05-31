@@ -4,6 +4,7 @@
 
 - [x] **v1.2 Full MCP Support** - Phases 16-21 (shipped 2026-05-30) - [archive](milestones/v1.2-ROADMAP.md)
 - [x] **v1.3 Location Intelligence** - Phases 22-25 (completed 2026-05-31)
+- [ ] **v1.4 Agentic Intelligence** - Phases 26-29 (active)
 
 ## Phases
 
@@ -22,12 +23,22 @@ Full details: [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
 
 </details>
 
-### v1.3 Location Intelligence
+<details>
+<summary>v1.3 Location Intelligence (Phases 22-25) - COMPLETE 2026-05-31</summary>
 
 - [x] **Phase 22: Geocoding + Favorites** - Geocode places, fly the globe, bookmark tracked entities (4/4 plans, verified 2026-05-31)
 - [x] **Phase 23: Entity Filtering** - Push live filters to the globe and query plugin-declared filter schemas
 - [x] **Phase 24: Route Wiring + Version Bump** - Wire all v1.3 registrars into the MCP handler and ship MCP_SERVER_VERSION 1.3.0
 - [x] **Phase 25: Documentation** - MCP tool docs, plugin author filter guide, user-facing capability summary, and v1.3 release notes (1/1 plans, completed 2026-05-31)
+
+</details>
+
+### v1.4 Agentic Intelligence
+
+- [ ] **Phase 26: Server Instructions + Orientation** - Agent arrives oriented with role framing, canonical workflows, and named MCP Prompts baked into the server
+- [ ] **Phase 27: Tool Description Rewrite** - All 15+ existing tools rewritten to the 6-component standard so agents select and invoke them correctly on the first try
+- [ ] **Phase 28: Smart Response Contracts + Favorites CRUD** - Query responses carry semantic empty reasons, get_plugin_filters signals unavailable plugins, and favorites gain full update support
+- [ ] **Phase 29: Compound and Discovery Tools** - Three new tools let agents self-orient and investigate in one call rather than assembling multi-step pipelines manually
 
 ## Phase Details
 
@@ -80,6 +91,51 @@ Full details: [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
 **Plans**: 25-01 (COMPLETE) - DOC-01..04 closed.
 **Status**: COMPLETE 2026-05-31. Enriched all 8 v1.3 tool descriptions (DOC-01), added docs/plugin-filter-guide.md (DOC-02), listed all tools in ConnectAgentHelper (DOC-03), added CHANGELOG.md v1.3.0 entry (DOC-04). tsc clean, 750 Vitest tests GREEN, build OK. Commits 84f8ade, 26d2063, 2eec714, f1405bd.
 
+### Phase 26: Server Instructions + Orientation
+**Goal**: A fresh AI agent connecting to the WWV MCP server for the first time receives a complete orientation -- who WWV is, what tools exist, and the canonical workflows to follow -- without the user having to explain anything
+**Depends on**: Phase 25 (v1.3 complete; stable tool set as orientation baseline)
+**Requirements**: INST-01, INST-02, INST-03, INST-04
+**Success Criteria** (what must be TRUE):
+  1. The MCP `initialize` response contains a non-empty `instructions` field with a role-framing header, a mental model for the globe/plugins/sessions, and at least two explicit "do X before Y" rules (read sessions before commanding; check plugin availability before querying)
+  2. A fresh agent that has only read `instructions` correctly answers: "What do I need to do before calling pan_globe?" without having read any individual tool description
+  3. Calling `prompts/list` returns both `orient-globe` and `investigate` prompt names; calling `prompts/get` on each returns a structured, step-numbered template with no placeholder text
+  4. An agent invoking the `orient-globe` prompt receives a single response containing active sessions, loaded plugin layers, and current camera state -- no follow-up resource reads needed to get oriented
+**Plans**: TBD
+
+### Phase 27: Tool Description Rewrite
+**Goal**: Every existing MCP tool description satisfies the 6-component standard so an agent selects the right tool, passes correct arguments, and correctly interprets empty results on the first attempt
+**Depends on**: Phase 26 (instructions written first; tool descriptions must align with the canonical workflows stated there)
+**Requirements**: DESC-01, DESC-02, DESC-03
+**Success Criteria** (what must be TRUE):
+  1. Every command tool description (`pan_globe`, `fly_to`, `focus_entity`, `toggle_layer`, `set_timeline`) contains inline: the sessions precondition, what "no active session" means, and when to prefer this tool over its nearest alternative
+  2. Every data query tool description (`search_entities`, `get_entities_in_region`, `get_entity_details`, `get_plugin_data`) states explicitly what an empty result means -- distinguishing "plugin not loaded" from "no matching data"
+  3. Every v1.3 tool description (`geocode_location`, `set_filter`, `clear_filter`, `get_plugin_filters`, `save_favorite`, `list_favorites`, `remove_favorite`) passes the 6-component checklist: purpose, when-to-use, limitations, parameter format, example, complete length
+  4. No tool description is truncated at a critical constraint; each fits within MCP client display limits while retaining all mandatory guidance
+**Plans**: TBD
+
+### Phase 28: Smart Response Contracts + Favorites CRUD
+**Goal**: Query tools communicate WHY results are empty rather than returning identical empty arrays for unrelated failure modes, and agents can update a saved favorite without deleting and recreating it
+**Depends on**: Phase 27 (tool descriptions must reference emptyReason semantics described there)
+**Requirements**: RESP-01, RESP-02, CRUD-01
+**Success Criteria** (what must be TRUE):
+  1. Calling `search_entities` with a plugin that has no active streaming session returns `{ success: true, entities: [], count: 0, emptyReason: "plugin_not_streaming" }` -- distinct from a query that returns `"no_data_matches"` when the plugin is streaming but nothing matches the filter
+  2. Calling `search_entities` when no globe session is active returns `emptyReason: "no_session_active"` -- the agent can distinguish this from a data absence without guessing
+  3. Calling `get_plugin_filters("flights")` when the flights plugin is not loaded returns `{ available: false, reason: "plugin not loaded" }` rather than an empty array, allowing the agent to report the real cause to the user
+  4. Calling `update_favorite(id, { name: "New Name", notes: "Updated note" })` persists the change and is reflected in the next `list_favorites` response without requiring `remove_favorite` + `save_favorite`
+**Plans**: TBD
+
+### Phase 29: Compound and Discovery Tools
+**Goal**: Agents can answer "what is happening near X?" in a single tool call, check which plugins are active before querying, and orient themselves completely without reading multiple resources
+**Depends on**: Phase 28 (emptyReason contracts and CRUD-01 must be complete; investigate_area depends on emptyReason to characterize its sub-query results)
+**Requirements**: TOOL-01, TOOL-02, TOOL-03
+**Success Criteria** (what must be TRUE):
+  1. Calling `list_available_plugins` returns a list of currently streaming plugins with entity counts and queryable entity types; an agent that calls this before `search_entities` never receives a `plugin_not_streaming` emptyReason it did not anticipate
+  2. Calling `get_globe_context` returns in one response: active session count, camera position, active layers, applied filters, and loaded plugin list -- an agent that reads this resource needs no additional `globe://sessions`, `globe://state`, or `globe://layers` reads to be fully oriented
+  3. Calling `investigate_area("Auckland", "flights")` internally geocodes the place, checks which plugins stream flights, queries the bounding region, positions the globe camera over Auckland, and returns both the entity list and a prose situation summary describing what is happening in that area
+  4. `investigate_area` returns a meaningful prose report even when no entities match -- the summary explains why (e.g., no active flight plugin) rather than returning an empty structure
+**UI hint**: no
+**Plans**: TBD
+
 ## Progress Table
 
 | Phase | Plans Complete | Status | Completed |
@@ -88,6 +144,10 @@ Full details: [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
 | 23. Entity Filtering | 3/3 | Complete | 2026-05-31 |
 | 24. Route Wiring + Version Bump | 1/1 | Complete | 2026-05-31 |
 | 25. Documentation | 1/1 | Complete | 2026-05-31 |
+| 26. Server Instructions + Orientation | 0/? | Not started | - |
+| 27. Tool Description Rewrite | 0/? | Not started | - |
+| 28. Smart Response Contracts + Favorites CRUD | 0/? | Not started | - |
+| 29. Compound and Discovery Tools | 0/? | Not started | - |
 
 ## Backlog
 
@@ -98,7 +158,7 @@ which was descoped to keep v1.2 worldwideview-only.
 - **999.1 -- PLG-01: `list_plugins()` MCP tool** -- returns all marketplace plugins with
   install status for the authenticated user. Depends on marketplace API + JWT bridge.
 - **999.2 -- PLG-02: `install_plugin({ pluginSlug })` MCP tool** -- triggers installation via
-  the existing marketplace JWT bridge flow. Depends on PLG-01 + marketplace install endpoint.
+  the existing marketplace JWT install bridge flow. Depends on PLG-01 + marketplace install endpoint.
 
 - **999.3 -- UX-01: Show MCP / ConnectAgentHelper as "Cloud edition" upgrade CTA in demo** --
   Currently `!isDemo` in Header.tsx:449 hides the entire ConnectAgentHelper section in demo.

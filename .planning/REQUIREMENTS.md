@@ -1,96 +1,94 @@
-# Requirements: WorldWideView v1.3
+# Requirements: WorldWideView v1.4 Agentic Intelligence
 
 **Defined:** 2026-05-31
-**Core Value:** A single globe that shows everything happening in the world right now, extensible by anyone via plugins, and controllable by any AI agent via MCP.
+**Core Value:** A single globe controllable by any AI agent via MCP -- where the agent arrives oriented, investigates intelligently, and acts with confidence.
 
-## v1.3 Requirements
+## v1.3 Requirements (shipped)
 
-### Geocoding
+All v1.3 requirements are complete. See archive for details.
 
-- [ ] **GEO-01**: Agent can call `geocode_location(query)` and receive 2-5 ranked results with `{lat, lng, name, type, country, bbox, importance}` via Nominatim
-- [x] **GEO-02**: Agent can call `fly_to(lat, lng, altitude?, bbox?)` to pan/zoom the globe camera; when `bbox` is provided, Cesium fits the region to the bounding box
-- [x] **GEO-03**: Geocoding enforces a server-side 1 req/sec Redis sliding window rate limiter and caches results for 24 hours to prevent Nominatim IP ban
+## v1.4 Requirements
 
-### Filtering
+### INST -- Server Instructions & Orientation
 
-- [x] **FILT-01**: Agent can call `set_filter(pluginId, filters)` to push a live filter to the globe via the SSE command bridge; browser applies it to Zustand filterSlice
-- [x] **FILT-02**: Agent can call `clear_filter(pluginId?)` to remove all active filters or per-plugin filters via SSE bridge
-- [x] **FILT-03**: Agent can call `get_plugin_filters(pluginId)` to retrieve filterable fields declared by a plugin via session catalog extension
-- [x] **FILT-04**: Agent can pass optional `filters` params to the existing `search_entities` tool to receive pre-filtered results inline (no set_filter state dependency)
+- [ ] **INST-01**: MCP server returns a populated `instructions` field in InitializeResult containing a role-framing markdown document that tells agents who WWV is, what tools are available, and the mental model for using them
+- [ ] **INST-02**: The `instructions` document embeds canonical workflow sequences: geocode-first before fly_to, check plugin availability before querying entities, read globe://sessions before sending any command tool
+- [ ] **INST-03**: MCP server registers an `orient-globe` Prompt that agents can invoke to get a structured snapshot of current sessions, active layers, and loaded plugins in one response
+- [ ] **INST-04**: MCP server registers an `investigate` Prompt that accepts a place name and guides the agent step-by-step through geocode -> plugin availability check -> region query -> globe action
 
-### Favorites
+### DESC -- Tool Description Rewrite (6-component standard)
 
-- [ ] **FAV-01**: Agent can call `save_favorite(entityId, pluginId, name?)` to bookmark a tracked entity per-user (upsert on existing `Favorite` Prisma model)
-- [ ] **FAV-02**: Agent can call `list_favorites()` to retrieve saved entities with `status: "live" | "stale"` (stale = entity not currently in data stream)
-- [ ] **FAV-03**: Agent can call `remove_favorite(entityId, pluginId)` to delete a saved bookmark
+Tool descriptions must include: (1) purpose verb+object front-loaded, (2) when-to-use vs. alternatives, (3) limitations and empty-result meaning, (4) parameter format + ranges, (5) concrete examples, (6) appropriate length (not truncated at the key sentence).
 
-### Safety & Guards
+- [ ] **DESC-01**: All globe command tools rewritten to 6-component standard: `pan_globe`, `fly_to`, `focus_entity`, `toggle_layer`, `set_timeline` -- each includes sessions precondition inline and distinguishes from its nearest alternative
+- [ ] **DESC-02**: All data query tools rewritten to 6-component standard: `search_entities`, `get_entities_in_region`, `get_entity_details`, `get_plugin_data` -- each includes plugin-availability note and explanation of what empty results mean
+- [ ] **DESC-03**: All v1.3 tools rewritten to 6-component standard: `geocode_location`, `set_filter`, `clear_filter`, `get_plugin_filters`, `save_favorite`, `list_favorites`, `remove_favorite`
 
-- [x] **SAFE-01**: All new MCP tool registrars check `isDemo` gate before `authenticateApiKey()`, consistent with v1.2 pattern
-- [ ] **SAFE-02**: MCP favorites tools call `prisma.favorite` directly and never proxy through the REST `/api/user/favorites` route (which uses NextAuth cookie auth and silently 401s on API key requests)
+### RESP -- Smart Response Contracts
 
-### Integration
+- [ ] **RESP-01**: All query tools (`search_entities`, `get_entities_in_region`, `get_entity_details`, `get_plugin_data`) include an `emptyReason` field when results are empty: `"plugin_not_streaming"` | `"no_data_matches"` | `"no_session_active"`
+- [ ] **RESP-02**: `get_plugin_filters` returns `{ available: false, reason: "plugin not loaded" }` (not an empty array) when the requested plugin is not active in the engine
 
-- [ ] **INTG-01**: All v1.3 tool registrars (geocoding, favorites, filtering) are wired into the MCP POST handler; `tools/list` exposes all 8 new tools
-- [ ] **INTG-02**: `MCP_SERVER_VERSION` constant is bumped to `"1.3.0"` and reflected in every `initialize` response `serverInfo.version`
+### TOOL -- New Compound & Discovery Tools
 
-### Documentation
+- [ ] **TOOL-01**: `list_available_plugins` MCP tool returns which plugins are currently streaming data to the engine, including entity counts and queryable entity types per plugin -- agents call this before attempting any data query
+- [ ] **TOOL-02**: `get_globe_context` MCP tool returns a full orientation snapshot in one call: active session count, camera position, active layers, applied filters, loaded plugin list -- replaces reading multiple resources separately
+- [ ] **TOOL-03**: `investigate_area(place_name, entity_type, radius_km?)` compound MCP tool that internally geocodes the place, checks which plugins are streaming the entity type, queries the bounding region, positions the globe camera, and returns both the entity list and a prose situation summary
 
-- [ ] **DOC-01**: Each v1.3 MCP tool has a complete tool-level description in its registrar (input schema, output shape, error codes, usage example) so it is self-documenting via `tools/list`
-- [ ] **DOC-02**: A developer guide exists explaining how to declare filterable fields in a plugin manifest (`filterDefinitions` extension) with a worked example
-- [ ] **DOC-03**: The user-facing ConnectAgentHelper or a companion doc describes all v1.3 capabilities available to connected agents (geocoding, filtering, favorites)
-- [ ] **DOC-04**: A changelog / release notes entry is written for v1.3 covering the 8 new MCP tools, 2 integration changes, and 1 search enhancement
+### CRUD -- Full Favorites Lifecycle
 
-## Future Requirements (v1.4+)
+- [ ] **CRUD-01**: `update_favorite(favoriteId, { name?, notes? })` MCP tool allows agents to rename or annotate a saved bookmark without deleting and re-creating it -- completes Create/Read/Update/Delete lifecycle for favorites
 
-### Marketplace Tools (Backlog)
-- **PLG-01**: Agent can call `list_plugins()` to browse available marketplace plugins
-- **PLG-02**: Agent can call `install_plugin(pluginId)` to install a marketplace plugin
-- **UX-01**: ConnectAgentHelper shows upgrade CTA in demo edition
+## Future Requirements (deferred)
 
-### Geocoding Enhancements
-- Reverse geocoding: coordinates to address
-- Structured address input (street, city, country)
-- Provider fallback (Photon, OpenCage)
+### Plugin Marketplace Integration
+
+- PLG-01: `list_plugins` MCP tool showing available marketplace plugins
+- PLG-02: `install_plugin` MCP tool to install a plugin from the marketplace
+- UX-01: ConnectAgentHelper upgrade CTA in demo edition
+
+### Advanced Investigation
+
+- Multi-turn investigation memory (agent remembers prior findings across sessions)
+- Proactive monitoring (agent watches for changes and alerts)
+- Saved investigation reports (persistent CRUD for investigation outputs)
+- Filter presets (save/apply named filter configurations)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Reverse geocoding | Not in v1.3 goals; forward search sufficient |
-| Filter state persisted in Redis | Zustand is single source of truth; SSE push only |
-| search_entities as a new filtered tool | Extended existing tool with optional filters instead |
-| MCP favorites REST proxy | Architecture invariant: API key auth != cookie auth |
+| Embedding AI chat UI in the globe | MCP is server-only; chat is the client's job |
+| Browser-side MCP client | Globe is an MCP server target, not client |
+| Playwright / computer-use control | SSE command bridge is the pattern |
+| Stdio MCP transport | HTTP/SSE for production deployability |
 | OAuth 2.1 for MCP auth | Personal API keys sufficient |
+| API key scopes/permissions/rotation | Revisit post-v1.4 |
+| Proactive monitoring / push alerts | Agent-pulls model only in v1.4 |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GEO-01 | Phase 22 | Pending |
-| GEO-02 | Phase 22 | Complete |
-| GEO-03 | Phase 22 | Complete |
-| FAV-01 | Phase 22 | Pending |
-| FAV-02 | Phase 22 | Pending |
-| FAV-03 | Phase 22 | Pending |
-| SAFE-01 | Phase 22 | Complete |
-| SAFE-02 | Phase 22 | Pending |
-| FILT-01 | Phase 23 | Complete |
-| FILT-02 | Phase 23 | Complete |
-| FILT-03 | Phase 23 | Complete |
-| FILT-04 | Phase 23 | Complete |
-| INTG-01 | Phase 24 | Pending |
-| INTG-02 | Phase 24 | Pending |
-| DOC-01 | Phase 25 | Pending |
-| DOC-02 | Phase 25 | Pending |
-| DOC-03 | Phase 25 | Pending |
-| DOC-04 | Phase 25 | Pending |
+| INST-01 | Phase 26 | Pending |
+| INST-02 | Phase 26 | Pending |
+| INST-03 | Phase 26 | Pending |
+| INST-04 | Phase 26 | Pending |
+| DESC-01 | Phase 27 | Pending |
+| DESC-02 | Phase 27 | Pending |
+| DESC-03 | Phase 27 | Pending |
+| RESP-01 | Phase 28 | Pending |
+| RESP-02 | Phase 28 | Pending |
+| CRUD-01 | Phase 28 | Pending |
+| TOOL-01 | Phase 29 | Pending |
+| TOOL-02 | Phase 29 | Pending |
+| TOOL-03 | Phase 29 | Pending |
 
 **Coverage:**
-- v1.3 requirements: 18 total
-- Mapped to phases: 18
+- v1.4 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-31*
-*Last updated: 2026-05-31 after Phase 25 documentation phase added*
+*Last updated: 2026-05-31 after initial v1.4 definition*

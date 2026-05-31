@@ -29,7 +29,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { isDemo } from "@/core/edition";
 import { authenticateApiKey } from "@/lib/apiKeyAuth";
-import { createMcpServer } from "@/lib/mcp/server";
+import { createMcpServer, registerOrientationPrompts } from "@/lib/mcp/server";
 import { mcpLimiter, getClientIp } from "@/lib/rateLimiters";
 import { registerGlobeResources } from "./globeResources";
 import { registerDataQueryTools } from "@/lib/mcp/tools";
@@ -178,6 +178,8 @@ async function handleMcpRequest(request: Request): Promise<Response> {
     registerGeocodingTools(server, { userId: authResult.userId });
     registerFavoritesTools(server, { userId: authResult.userId });
     registerFilterTools(server, { userId: authResult.userId });
+    // Phase 26: orientation prompts (INST-03, INST-04)
+    await registerOrientationPrompts(server, { userId: authResult.userId });
 
     // Phase 21: dynamic plugin tools — read the per-session catalog and
     // register each plugin tool so tools/list includes them.
