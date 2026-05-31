@@ -144,10 +144,10 @@ export function registerFilterTools(
             description:
                 "Read-only discovery: list filterable fields a plugin has declared, so you can build a valid set_filter call. " +
                 "Use before set_filter to confirm filter ids and value types for a plugin. " +
-                "Limitations: returns [] when the plugin declares no filters or no globe session is active (browser must be open with the plugin loaded). " +
+                "Limitations: returns { available: false, reason: 'no_session_active' } when no globe session is active (browser must be open); returns { available: false, reason: 'plugin not loaded' } when the plugin has not published its catalog. " +
                 "Parameters: pluginId (string, required) -- the plugin to inspect. " +
-                "Output: JSON array of FilterDefinition, each { id, label, type: 'text'|'select'|'range'|'boolean', propertyKey, options?, range? }. " +
-                "Example: get_plugin_filters({ pluginId: 'flights' }) -> [{ id: 'status', label: 'Status', type: 'select', options: [...] }].",
+                "Output: { available: true, filters: FilterDefinition[] } when the plugin is loaded, where each FilterDefinition is { id, label, type: 'text'|'select'|'range'|'boolean', propertyKey, options?, range? }; or { available: false, reason: 'plugin not loaded' | 'no_session_active' } when unavailable. " +
+                "Example: get_plugin_filters({ pluginId: 'flights' }) -> { available: true, filters: [{ id: 'status', label: 'Status', type: 'select', options: [...] }] }.",
             inputSchema: {
                 pluginId: z.string().min(1).describe("Plugin to inspect for declared filterable fields"),
             },
@@ -155,14 +155,19 @@ export function registerFilterTools(
         async (args) => {
             try {
                 const sessionId = await resolveActiveSessionId(userId);
-                if (!sessionId) return textResult("[]");
+                if (!sessionId) {
+                    return textResult(JSON.stringify({ available: false, reason: "no_session_active" }));
+                }
 
                 const catalog = await readSessionCatalog(userId, sessionId);
-                const defs = catalog?.filterDefinitions?.[args.pluginId] ?? [];
-                return textResult(JSON.stringify(defs));
+                const filterDefs = catalog?.filterDefinitions;
+                if (!filterDefs || !(args.pluginId in filterDefs)) {
+                    return textResult(JSON.stringify({ available: false, reason: "plugin not loaded" }));
+                }
+                return textResult(JSON.stringify({ available: true, filters: filterDefs[args.pluginId] }));
             } catch (err) {
                 console.error("[filterTools] get_plugin_filters failed:", err);
-                return textResult("[]");
+                return textResult(JSON.stringify({ available: false, reason: "plugin not loaded" }));
             }
         },
     );
