@@ -128,7 +128,7 @@ Full details: [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
 **Plans**: 3 plans
 - [x] 28-01-PLAN.md — RESP-01: emptyReason discriminated service results + userId threading into registerDataQueryTools + 4-tool passthrough with session-first precedence + tests (wave 1)
 - [ ] 28-02-PLAN.md — RESP-02: get_plugin_filters availability wrapper (4 shapes) + Phase 27 description/test updates (wave 2, depends on 28-01 for route.ts seam)
-- [ ] 28-03-PLAN.md — CRUD-01: [BLOCKING] notes String? migration + update_favorite tool + list_favorites notes surfacing + tests (wave 1, independent files)
+- [x] 28-03-PLAN.md — CRUD-01: [BLOCKING] notes String? migration + update_favorite tool + list_favorites notes surfacing + tests (wave 1, independent files)
 
 ### Phase 29: Compound and Discovery Tools
 **Goal**: Agents can answer "what is happening near X?" in a single tool call, check which plugins are active before querying, and orient themselves completely without reading multiple resources
@@ -152,7 +152,7 @@ Full details: [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
 | 25. Documentation | 1/1 | Complete | 2026-05-31 |
 | 26. Server Instructions + Orientation | 1/1 | Complete   | 2026-05-31 |
 | 27. Tool Description Rewrite | 3/3 | Complete   | 2026-05-31 |
-| 28. Smart Response Contracts + Favorites CRUD | 1/3 | In Progress|  |
+| 28. Smart Response Contracts + Favorites CRUD | 2/3 | In Progress|  |
 | 29. Compound and Discovery Tools | 0/? | Not started | - |
 
 ## Backlog

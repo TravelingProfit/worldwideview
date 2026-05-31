@@ -37,7 +37,7 @@ Tool descriptions must include: (1) purpose verb+object front-loaded, (2) when-t
 
 ### CRUD -- Full Favorites Lifecycle
 
-- [ ] **CRUD-01**: `update_favorite(favoriteId, { name?, notes? })` MCP tool allows agents to rename or annotate a saved bookmark without deleting and re-creating it -- completes Create/Read/Update/Delete lifecycle for favorites
+- [x] **CRUD-01**: `update_favorite(favoriteId, { name?, notes? })` MCP tool allows agents to rename or annotate a saved bookmark without deleting and re-creating it -- completes Create/Read/Update/Delete lifecycle for favorites
 
 ## Future Requirements (deferred)
 
@@ -79,7 +79,7 @@ Tool descriptions must include: (1) purpose verb+object front-loaded, (2) when-t
 | DESC-03 | Phase 27 | Complete |
 | RESP-01 | Phase 28 | Complete |
 | RESP-02 | Phase 28 | Pending |
-| CRUD-01 | Phase 28 | Pending |
+| CRUD-01 | Phase 28 | Complete |
 | TOOL-01 | Phase 29 | Pending |
 | TOOL-02 | Phase 29 | Pending |
 | TOOL-03 | Phase 29 | Pending |
