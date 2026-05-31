@@ -1,11 +1,12 @@
 /**
  * MCP Favorites Tool registrar (Phase 22 Wave 2 -- 22-03).
  *
- * Registers three MCP tools that let an AI agent bookmark entities for a user:
+ * Registers four MCP tools that let an AI agent bookmark entities for a user:
  *
  *   save_favorite    -- upsert an entity bookmark (FAV-01)
  *   list_favorites   -- list bookmarks with per-entity liveness status (FAV-02)
  *   remove_favorite  -- delete a bookmark (FAV-03)
+ *   update_favorite  -- rename/annotate an existing bookmark (CRUD-01)
  *
  * Security (SAFE-02): userId comes ONLY from ctx (the verified auth result). It
  * is never read from tool arguments, and all Prisma queries are row-scoped by
@@ -117,8 +118,8 @@ export function registerFavoritesTools(
                 "Use to find entityIds before calling remove_favorite, or to review which entities are currently live. " +
                 "Limitations: status is 'live' only with an active globe session; with no active session ALL entries are reported 'stale'. Returns [] when there are no favorites. " +
                 "Parameters: none. " +
-                "Output: JSON array, each { id, entityId, pluginId, label, pluginName, lastSeen, status: 'live'|'stale' }. " +
-                "Example: list_favorites({}) -> [{ entityId: 'AFR123', pluginId: 'flights', label: 'Air France 123', status: 'live' }].",
+                "Output: JSON array, each { id, entityId, pluginId, label, pluginName, lastSeen, notes, status: 'live'|'stale' }. " +
+                "Example: list_favorites({}) -> [{ entityId: 'AFR123', pluginId: 'flights', label: 'Air France 123', notes: null, status: 'live' }].",
             inputSchema: {},
         },
         async () => {
@@ -145,6 +146,47 @@ export function registerFavoritesTools(
             } catch (err) {
                 console.error("[favoritesTools] list_favorites failed:", err);
                 return textResult("list_favorites failed");
+            }
+        },
+    );
+
+    // TOOL: update_favorite (CRUD-01)
+    server.registerTool(
+        "update_favorite",
+        {
+            description:
+                "Rename or annotate an existing bookmarked entity without deleting and re-creating it. " +
+                "Use when the user wants to change the display name or add a personal note to an existing favorite. " +
+                "Limitations: at least one of name or notes must be supplied; favoriteId must match an existing bookmark owned by the user. " +
+                "Parameters: favoriteId (string, required, the entityId of the bookmark); name (string, optional, new display label); notes (string, optional, free-text annotation). " +
+                "Output: 'Updated favorite: <label>' on success, or an error string. " +
+                "Example: update_favorite({ favoriteId: 'AFR123', name: 'Air France 123', notes: 'Check weekly' }).",
+            inputSchema: {
+                favoriteId: z.string().min(1).describe("The entityId of the favorite to update"),
+                name: z.string().optional().describe("New display label for the bookmark"),
+                notes: z.string().optional().describe("Free-text annotation to store with the bookmark"),
+            },
+        },
+        async (args) => {
+            if (args.name === undefined && args.notes === undefined) {
+                return textResult("update_favorite: nothing to update");
+            }
+            const data: { label?: string; notes?: string } = {};
+            if (args.name !== undefined) data.label = args.name;
+            if (args.notes !== undefined) data.notes = args.notes;
+            try {
+                const updated = await prisma.favorite.update({
+                    where: favoriteWhere(userId, args.favoriteId),
+                    data,
+                });
+                return textResult(`Updated favorite: ${updated.label}`);
+            } catch (err) {
+                const code = (err as { code?: string }).code;
+                if (code === "P2025") {
+                    return textResult("update_favorite: favorite not found");
+                }
+                console.error("[favoritesTools] update_favorite failed:", err);
+                return textResult("update_favorite failed");
             }
         },
     );
