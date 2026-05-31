@@ -36,6 +36,8 @@ import { registerDataQueryTools } from "@/lib/mcp/tools";
 import { registerGlobeCommandTools } from "./globeCommandTools";
 import { resolveActiveSessionId } from "@/lib/globeCommandQueue";
 import { registerPluginToolDispatch } from "./pluginToolDispatch";
+import { registerGeocodingTools } from "./geocodingTools";
+import { registerFavoritesTools } from "./favoritesTools";
 
 // ---------------------------------------------------------------------------
 // JSON-RPC 2.0 error response helpers
@@ -167,9 +169,12 @@ async function handleMcpRequest(request: Request): Promise<Response> {
     // Phase 19: globe command tools
     // Phase 20: data query tools
     // Phase 21: dynamic per-session plugin tools (below)
+    //   Phase 22: registerGeocodingTools, registerFavoritesTools
     registerGlobeResources(server, { userId: authResult.userId });
     registerDataQueryTools(server);
     registerGlobeCommandTools(server, { userId: authResult.userId });
+    registerGeocodingTools(server, { userId: authResult.userId });
+    registerFavoritesTools(server, { userId: authResult.userId });
 
     // Phase 21: dynamic plugin tools — read the per-session catalog and
     // register each plugin tool so tools/list includes them.
