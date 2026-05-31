@@ -21,7 +21,7 @@ All v1.3 requirements are complete. See archive for details.
 Tool descriptions must include: (1) purpose verb+object front-loaded, (2) when-to-use vs. alternatives, (3) limitations and empty-result meaning, (4) parameter format + ranges, (5) concrete examples, (6) appropriate length (not truncated at the key sentence).
 
 - [x] **DESC-01**: All globe command tools rewritten to 6-component standard: `pan_globe`, `fly_to`, `focus_entity`, `toggle_layer`, `set_timeline` -- each includes sessions precondition inline and distinguishes from its nearest alternative
-- [ ] **DESC-02**: All data query tools rewritten to 6-component standard: `search_entities`, `get_entities_in_region`, `get_entity_details`, `get_plugin_data` -- each includes plugin-availability note and explanation of what empty results mean
+- [x] **DESC-02**: All data query tools rewritten to 6-component standard: `search_entities`, `get_entities_in_region`, `get_entity_details`, `get_plugin_data` -- each includes plugin-availability note and explanation of what empty results mean
 - [ ] **DESC-03**: All v1.3 tools rewritten to 6-component standard: `geocode_location`, `set_filter`, `clear_filter`, `get_plugin_filters`, `save_favorite`, `list_favorites`, `remove_favorite`
 
 ### RESP -- Smart Response Contracts
@@ -75,7 +75,7 @@ Tool descriptions must include: (1) purpose verb+object front-loaded, (2) when-t
 | INST-03 | Phase 26 | Complete |
 | INST-04 | Phase 26 | Complete |
 | DESC-01 | Phase 27 | Complete |
-| DESC-02 | Phase 27 | Pending |
+| DESC-02 | Phase 27 | Complete |
 | DESC-03 | Phase 27 | Pending |
 | RESP-01 | Phase 28 | Pending |
 | RESP-02 | Phase 28 | Pending |

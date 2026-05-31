@@ -113,7 +113,7 @@ Full details: [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
   4. No tool description is truncated at a critical constraint; each fits within MCP client display limits while retaining all mandatory guidance
 **Plans**: 3 plans (all wave 1, parallel -- no file overlap)
 - [x] 27-01-PLAN.md — DESC-01: rewrite 4 globe command tool descriptions (pan_globe, focus_entity, toggle_layer, set_timeline) + assertion tests
-- [ ] 27-02-PLAN.md — DESC-02: rewrite 4 data query tool descriptions with empty-result semantics + new tools.test.ts
+- [x] 27-02-PLAN.md — DESC-02: rewrite 4 data query tool descriptions with empty-result semantics + new tools.test.ts
 - [ ] 27-03-PLAN.md — DESC-03: conform 8 v1.3 tool descriptions across geocoding/filter/favorites (fly_to gets the sessions precondition) + assertion tests
 
 ### Phase 28: Smart Response Contracts + Favorites CRUD
@@ -148,7 +148,7 @@ Full details: [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
 | 24. Route Wiring + Version Bump | 1/1 | Complete | 2026-05-31 |
 | 25. Documentation | 1/1 | Complete | 2026-05-31 |
 | 26. Server Instructions + Orientation | 1/1 | Complete   | 2026-05-31 |
-| 27. Tool Description Rewrite | 1/3 | In Progress|  |
+| 27. Tool Description Rewrite | 2/3 | In Progress|  |
 | 28. Smart Response Contracts + Favorites CRUD | 0/? | Not started | - |
 | 29. Compound and Discovery Tools | 0/? | Not started | - |
 
