@@ -66,10 +66,11 @@ export function registerFavoritesTools(
         "save_favorite",
         {
             description:
-                "Bookmark an entity so the user can return to it later (upsert by entityId). " +
-                "Inputs: entityId (string, required) -- the unique entity id; pluginId (string, required) -- the plugin that owns the entity; " +
-                "name (string, optional) -- a human-readable label, defaults to entityId. " +
-                "Output: text 'Saved favorite: <label>'. " +
+                "Bookmark an entity so the user can return to it later (upsert by entityId -- re-saving updates, not duplicates). " +
+                "Use when the user wants to track a specific entity across sessions. " +
+                "Limitations: entityId must be the exact id used by the plugin; no validation is performed against live data. " +
+                "Parameters: entityId (string, required); pluginId (string, required); name (string, optional, defaults to entityId). " +
+                "Output: 'Saved favorite: <label>'. " +
                 "Example: save_favorite({ entityId: 'AFR123', pluginId: 'flights', name: 'Air France 123' }).",
             inputSchema: {
                 entityId: z.string().min(1).describe("Unique entity identifier"),
@@ -113,10 +114,10 @@ export function registerFavoritesTools(
         {
             description:
                 "List the authenticated user's bookmarked entities, most recently seen first. " +
-                "Inputs: none. " +
-                "Output: a JSON array of favorites, each with { id, userId, entityId, pluginId, label, pluginName, lastSeen, status }, " +
-                "where status is 'live' if the entity currently resolves on an active globe session, otherwise 'stale'. " +
-                "With no active session ALL entries are reported 'stale'. Returns [] when there are no favorites. " +
+                "Use to find entityIds before calling remove_favorite, or to review which entities are currently live. " +
+                "Limitations: status is 'live' only with an active globe session; with no active session ALL entries are reported 'stale'. Returns [] when there are no favorites. " +
+                "Parameters: none. " +
+                "Output: JSON array, each { id, entityId, pluginId, label, pluginName, lastSeen, status: 'live'|'stale' }. " +
                 "Example: list_favorites({}) -> [{ entityId: 'AFR123', pluginId: 'flights', label: 'Air France 123', status: 'live' }].",
             inputSchema: {},
         },
@@ -153,9 +154,11 @@ export function registerFavoritesTools(
         "remove_favorite",
         {
             description:
-                "Remove a bookmarked entity from the authenticated user's favorites. " +
-                "Inputs: entityId (string, required) -- the entity id to remove. " +
-                "Output: text 'Removed favorite: <entityId>'. " +
+                "Delete a bookmarked entity from the authenticated user's favorites. " +
+                "Pair with list_favorites to find the correct entityId before removing. " +
+                "Limitations: deletes by entityId; silently succeeds if the entity was already removed. " +
+                "Parameters: entityId (string, required). " +
+                "Output: 'Removed favorite: <entityId>'. " +
                 "Example: remove_favorite({ entityId: 'AFR123' }).",
             inputSchema: {
                 entityId: z.string().min(1).describe("Entity identifier to remove from favorites"),

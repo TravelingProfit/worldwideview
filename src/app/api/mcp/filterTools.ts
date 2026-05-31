@@ -64,13 +64,11 @@ export function registerFilterTools(
         "set_filter",
         {
             description:
-                "Apply one or more filters to a plugin's layer on the live globe (no page reload). " +
-                "Inputs: pluginId (string, required) -- the plugin whose layer to filter, e.g. 'flights'; " +
-                "filters (object, required) -- a map of filterId -> filter value, where each value is one of " +
-                "{ type: 'text', value: string } | { type: 'select', values: string[] } | { type: 'range', min: number, max: number } | { type: 'boolean', value: boolean }; " +
-                "sessionId (string, optional) -- target a specific tab; omit for the most-recently-active tab. " +
-                "Discover valid filter ids and value types via get_plugin_filters. " +
-                "Output: text 'set_filter command enqueued for <pluginId> (N filter(s))', or 'no active globe session to control'. " +
+                "Apply one or more filters to a plugin's live globe layer (no page reload). " +
+                "Use after get_plugin_filters to discover valid filter ids; affects the live globe layer, not data query tools. " +
+                "Limitations: filter ids are plugin-specific; invalid ids are silently ignored by the browser. " +
+                "Parameters: pluginId (string, required); filters (object, required) -- filterId -> { type: 'text', value } | { type: 'select', values } | { type: 'range', min, max } | { type: 'boolean', value }; sessionId (optional). " +
+                "Output: 'set_filter command enqueued for <pluginId> (N filter(s))' or 'no active globe session to control'. " +
                 "Example: set_filter({ pluginId: 'flights', filters: { status: { type: 'select', values: ['airborne'] } } }).",
             inputSchema: {
                 pluginId: z.string().min(1).describe("Plugin whose layer to filter, e.g. 'flights'"),
@@ -106,10 +104,11 @@ export function registerFilterTools(
         "clear_filter",
         {
             description:
-                "Clear active filters on the live globe in one command. " +
-                "Inputs: pluginId (string, optional) -- clear just that plugin's filters; omit to clear ALL filters across every plugin; " +
-                "sessionId (string, optional) -- target a specific tab; omit for the most-recently-active tab. " +
-                "Output: text 'clear_filter enqueued for <pluginId>' or 'clear_filter enqueued for ALL plugins', or 'no active globe session to control'. " +
+                "Clear active filters on the live globe. " +
+                "Prefer clear_filter over re-setting filters to empty values; omit pluginId to clear ALL filters across every plugin at once. " +
+                "Limitations: requires an active globe session; returns 'no active globe session to control' when no tab is live. " +
+                "Parameters: pluginId (string, optional) -- omit to clear all plugins; sessionId (optional). " +
+                "Output: 'clear_filter enqueued for <pluginId>' or 'clear_filter enqueued for ALL plugins'. " +
                 "Example: clear_filter({ pluginId: 'flights' }) or clear_filter({}).",
             inputSchema: {
                 pluginId: z.string().optional().describe("Plugin whose filters to clear. Omit to clear ALL filters on the globe."),
@@ -143,11 +142,12 @@ export function registerFilterTools(
         "get_plugin_filters",
         {
             description:
-                "List the filterable fields a plugin has declared (via its getFilterDefinitions), so you can build a valid set_filter call. " +
-                "Inputs: pluginId (string, required) -- the plugin to inspect. " +
-                "Output: a JSON array of FilterDefinition, each { id, label, type: 'text'|'select'|'range'|'boolean', propertyKey, options?: {value,label}[], range?: {min,max,step} }. " +
-                "Returns [] when the plugin declares no filters or no globe session is active. " +
-                "Example: get_plugin_filters({ pluginId: 'flights' }) -> [{ id: 'status', label: 'Status', type: 'select', propertyKey: 'flightStatus', options: [...] }].",
+                "Read-only discovery: list filterable fields a plugin has declared, so you can build a valid set_filter call. " +
+                "Use before set_filter to confirm filter ids and value types for a plugin. " +
+                "Limitations: returns [] when the plugin declares no filters or no globe session is active (browser must be open with the plugin loaded). " +
+                "Parameters: pluginId (string, required) -- the plugin to inspect. " +
+                "Output: JSON array of FilterDefinition, each { id, label, type: 'text'|'select'|'range'|'boolean', propertyKey, options?, range? }. " +
+                "Example: get_plugin_filters({ pluginId: 'flights' }) -> [{ id: 'status', label: 'Status', type: 'select', options: [...] }].",
             inputSchema: {
                 pluginId: z.string().min(1).describe("Plugin to inspect for declared filterable fields"),
             },
