@@ -328,7 +328,20 @@ export function syncToPublic({ dir, manifest, pluginDir }, { quiet = false } = {
         // Carry localData declarations into the generated manifest so the
         // server-side LocalDataSource registry can discover them at runtime
         // without reading raw package.json files (Phase 30, D-02/Area 2).
-        ...(manifest.localData ? { localData: manifest.localData } : {}),
+        // Security: filter localData to only safe, well-typed entries before
+        // writing to the generated file (T-30-01/03: prevent absolute-URL
+        // SSRF sources and path-traversal entries from propagating).
+        ...(manifest.localData ? {
+            localData: manifest.localData.filter(
+                (entry) =>
+                    entry !== null &&
+                    typeof entry === "object" &&
+                    (entry.type === "geojson" || entry.type === "route") &&
+                    typeof entry.path === "string" &&
+                    entry.path.startsWith("/") &&
+                    !entry.path.includes(".."),
+            ),
+        } : {}),
     };
 
     fs.writeFileSync(

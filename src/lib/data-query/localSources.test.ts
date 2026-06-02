@@ -57,32 +57,12 @@ const FAKE_TRAFFIC_RESPONSE = JSON.stringify({
     ],
 });
 
-vi.mock("fs/promises", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("fs/promises")>();
-    return {
-        ...actual,
-        readdir: vi.fn(async (dir: string) => {
-            if (String(dir).includes("plugins-local")) return ["camera"];
-            return [];
-        }),
-        readFile: vi.fn(async (filePath: string, _encoding: string) => {
-            const p = String(filePath);
-            if (p.includes("plugins-local") && p.includes("camera") && p.includes("plugin.json")) {
-                return FAKE_CAMERA_MANIFEST;
-            }
-            if (p.includes("public-cameras.json")) {
-                return FAKE_CAMERAS_GEOJSON;
-            }
-            throw Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" });
-        }),
-    };
-});
-
 global.fetch = vi.fn();
 
 // Use clearAllMocks (clears call counts/results) not resetAllMocks (wipes implementations).
-// resetAllMocks would strip the vi.fn() implementations set inside vi.mock() factory,
-// causing fs/promises mocks to return undefined on subsequent tests.
+// resetAllMocks would strip the vi.fn() implementations, causing mocks to return undefined.
+// Note: registry tests use _setReaderForTest injection instead of vi.mock("node:fs/promises")
+// to avoid Vitest Node built-in mock interop limitations in the jsdom environment.
 beforeEach(() => {
     vi.clearAllMocks();
 });
@@ -237,17 +217,41 @@ describe("cache", () => {
 // ---------------------------------------------------------------------------
 
 describe("registry", () => {
+    // Fake fs reader using the module-level constants — injected via _setReaderForTest
+    // to bypass Vitest's Node built-in mock interop limitations (jsdom environment).
+    const fakeReaddir = async (dir: string): Promise<string[]> => {
+        if (String(dir).includes("plugins-local")) return ["camera"];
+        return [];
+    };
+    const fakeReadfile = async (filePath: string, _encoding: string): Promise<string> => {
+        const p = String(filePath);
+        if (p.includes("plugins-local") && p.includes("camera") && p.includes("plugin.json")) {
+            return FAKE_CAMERA_MANIFEST;
+        }
+        if (p.includes("public-cameras.json")) {
+            return FAKE_CAMERAS_GEOJSON;
+        }
+        throw Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" });
+    };
+
     beforeEach(async () => {
-        // Reset the memoized registry between tests so each test gets a fresh scan.
-        const { _resetRegistry } = await import("./localSources/registry");
+        const { _resetRegistry, _setReaderForTest } = await import("./localSources/registry");
+        // Inject fake fs reader so registry reads mock manifests, not real disk.
+        _setReaderForTest(fakeReaddir, fakeReadfile);
+        // Reset the memoized registry so each test gets a fresh scan with the injected reader.
         _resetRegistry();
-        // Clear the per-source data cache so each test reads through the fs mock.
+        // Clear the per-source data cache so each test reads through the fake reader.
         const { _clearCache } = await import("./localSources/cache");
         _clearCache();
         // Re-supply fetch mock for route source
         vi.mocked(global.fetch).mockResolvedValue(
             new Response(FAKE_TRAFFIC_RESPONSE, { status: 200 }),
         );
+    });
+
+    afterEach(async () => {
+        const { _restoreReader } = await import("./localSources/registry");
+        _restoreReader();
     });
 
     it("hasLocalSource('camera') returns true after building from manifests", async () => {
@@ -302,6 +306,72 @@ describe("registry", () => {
     it("resolveLocalSnapshot throws for unknown plugin id", async () => {
         const { resolveLocalSnapshot } = await import("./localSources/registry");
         await expect(resolveLocalSnapshot("unknown-plugin")).rejects.toThrow();
+    });
+
+    it("fetchRouteSource rejects an absolute-URL path (SSRF guard)", async () => {
+        // Inject a reader that returns a manifest with an absolute-URL route source.
+        const maliciousManifest = JSON.stringify({
+            id: "camera",
+            name: "@worldwideview/wwv-plugin-camera",
+            version: "1.0.0",
+            type: "data-layer",
+            format: "bundle",
+            trust: "unverified",
+            capabilities: ["layer"],
+            category: "Infrastructure",
+            icon: "Camera",
+            entry: "/plugins-local/camera/frontend.mjs",
+            localData: [
+                { name: "evil", type: "route", path: "http://attacker.example/steal" },
+            ],
+        });
+
+        const { _resetRegistry, _setReaderForTest } = await import("./localSources/registry");
+        _setReaderForTest(
+            async (dir) => (String(dir).includes("plugins-local") ? ["camera"] : []),
+            async (filePath) => {
+                if (String(filePath).includes("plugin.json")) return maliciousManifest;
+                throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+            },
+        );
+        _resetRegistry();
+
+        const { resolveLocalSnapshot } = await import("./localSources/registry");
+        await expect(resolveLocalSnapshot("camera")).rejects.toThrow(/non-relative/);
+    });
+
+    it("type allowlist drops non-geojson/route sources (only allowed types enter registry)", async () => {
+        // Manifest declares an unsupported type "csv" — registry should drop it,
+        // leaving the plugin with 0 valid sources and therefore not registering it.
+        const badTypeManifest = JSON.stringify({
+            id: "camera",
+            name: "@worldwideview/wwv-plugin-camera",
+            version: "1.0.0",
+            type: "data-layer",
+            format: "bundle",
+            trust: "unverified",
+            capabilities: ["layer"],
+            category: "Infrastructure",
+            icon: "Camera",
+            entry: "/plugins-local/camera/frontend.mjs",
+            localData: [
+                { name: "feed", type: "csv", path: "/cameras.csv" },
+            ],
+        });
+
+        const { _resetRegistry, _setReaderForTest } = await import("./localSources/registry");
+        _setReaderForTest(
+            async (dir) => (String(dir).includes("plugins-local") ? ["camera"] : []),
+            async (filePath) => {
+                if (String(filePath).includes("plugin.json")) return badTypeManifest;
+                throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+            },
+        );
+        _resetRegistry();
+
+        const { hasLocalSource } = await import("./localSources/registry");
+        // "camera" should NOT be registered because its only source has a forbidden type.
+        expect(await hasLocalSource("camera")).toBe(false);
     });
 });
 

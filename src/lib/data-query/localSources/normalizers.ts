@@ -67,7 +67,7 @@ export function normalizeGeoJson(
             "Unknown Camera";
 
         entities.push({
-            id: `camera-${prefix}-${index}`,
+            id: `${pluginId}-${prefix}-${index}`,
             pluginId,
             latitude: lat,
             longitude: lon,

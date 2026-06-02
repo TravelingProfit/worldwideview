@@ -155,7 +155,7 @@ Full details: [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
 | 27. Tool Description Rewrite | 3/3 | Complete   | 2026-05-31 |
 | 28. Smart Response Contracts + Favorites CRUD | 3/3 | Complete   | 2026-05-31 |
 | 29. Compound and Discovery Tools | 1/1 | Complete   | 2026-05-31 |
-| 30. Local Data-Source Bridge | 3/4 | In Progress|  |
+| 30. Local Data-Source Bridge | 4/4 | Complete   | 2026-06-02 |
 
 ## Backlog
 
@@ -186,10 +186,10 @@ Also tracked as partials (functional, refinement deferred):
 **Goal:** Server-reachable client-side/static plugins (camera GeoJSON + traffic route) are MCP-queryable through a generalized manifest-declared LocalDataSource registry, with NO browser session -- closing the plugin_not_streaming coverage gap. Acceptance: a Russia-bbox `get_entities_in_region(pluginId:"camera")` returns the in-box cameras and `list_available_plugins` lists camera as `source:"local"` with a non-zero count.
 **Requirements**: D-01..D-08 (CONTEXT decisions), RESP-01 (emptyReason contract preserved), TOOL-01/TOOL-02 (discovery surface)
 **Depends on:** Phase 29
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 30-01-PLAN.md — Foundation: SDK LocalDataSourceDeclaration type + camera package.json localData declaration + sync-local-plugins passthrough + validateManifest localData validator (wave 1, TDD)
 - [x] 30-02-PLAN.md — localSources module: manifest-driven registry + server-side GeoJSON normalizer + per-source TTL cache (wave 2, TDD)
 - [x] 30-03-PLAN.md — Integration seam: fetchPluginSnapshot engine->local->null fallback + getAllPluginSnapshots local-id union; Russia-bbox demo + D-06 emptyReason cases (wave 3, TDD)
-- [ ] 30-04-PLAN.md — Discovery surface: StreamingPlugin source:"engine"|"local" tag in listStreamingPlugins; camera surfaced in list_available_plugins/get_globe_context (wave 4, TDD)
+- [x] 30-04-PLAN.md — Discovery surface: StreamingPlugin source:"engine"|"local" tag in listStreamingPlugins; camera surfaced in list_available_plugins/get_globe_context (wave 4, TDD)

@@ -12,12 +12,34 @@
  * and any path containing ".." is rejected before the read.
  */
 
-import { readdir, readFile } from "fs/promises";
+import { readdir as nodeReaddir, readFile as nodeReadFile } from "node:fs/promises";
 import path from "path";
 import type { LocalDataSourceDeclaration } from "@worldwideview/wwv-plugin-sdk";
 import type { PluginDataSnapshot } from "../types";
 import { normalizeGeoJson } from "./normalizers";
 import { getCached, TTL_GEOJSON_MS, TTL_ROUTE_MS } from "./cache";
+
+// ---------------------------------------------------------------------------
+// Fs reader — injectable for testing (avoids Node built-in mock interop issues)
+// ---------------------------------------------------------------------------
+
+type Readdir = (dir: string) => Promise<string[]>;
+type Readfile = (p: string, enc: string) => Promise<string>;
+
+let _readdir: Readdir = (dir) => nodeReaddir(dir) as Promise<string[]>;
+let _readfile: Readfile = (p, enc) => nodeReadFile(p, enc as "utf-8") as Promise<string>;
+
+/** Exposed for testing ONLY: inject custom fs reader implementations. */
+export function _setReaderForTest(rd: Readdir, rf: Readfile): void {
+    _readdir = rd;
+    _readfile = rf;
+}
+
+/** Restore the default fs readers (call in afterEach when using _setReaderForTest). */
+export function _restoreReader(): void {
+    _readdir = (dir) => nodeReaddir(dir) as Promise<string[]>;
+    _readfile = (p, enc) => nodeReadFile(p, enc as "utf-8") as Promise<string>;
+}
 
 // ---------------------------------------------------------------------------
 // Plugin ID validator (mirrors service.ts — defense in depth)
@@ -38,6 +60,9 @@ interface RegistryEntry {
     sources: LocalDataSourceDeclaration[];
 }
 
+// T-30-01: only allow known source types — drop anything else at registry scan time.
+const ALLOWED_SOURCE_TYPES = new Set(["geojson", "route"]);
+
 // Memoized map: built once per process from disk, keyed by plugin id.
 let registryPromise: Promise<Map<string, RegistryEntry>> | null = null;
 
@@ -55,7 +80,7 @@ function getRegistry(): Promise<Map<string, RegistryEntry>> {
 
         let entries: string[];
         try {
-            entries = await readdir(pluginsDir) as string[];
+            entries = await _readdir(pluginsDir);
         } catch {
             return map;
         }
@@ -64,7 +89,7 @@ function getRegistry(): Promise<Map<string, RegistryEntry>> {
             const manifestPath = path.join(pluginsDir, entry, "plugin.json");
             let raw: string;
             try {
-                raw = await readFile(manifestPath, "utf-8");
+                raw = await _readfile(manifestPath, "utf-8");
             } catch {
                 continue;
             }
@@ -83,12 +108,17 @@ function getRegistry(): Promise<Map<string, RegistryEntry>> {
             if (!Array.isArray(localData) || localData.length === 0) continue;
 
             const sources = (localData as unknown[]).filter(
-                (s): s is LocalDataSourceDeclaration =>
-                    typeof s === "object" &&
-                    s !== null &&
-                    typeof (s as Record<string, unknown>).name === "string" &&
-                    typeof (s as Record<string, unknown>).type === "string" &&
-                    typeof (s as Record<string, unknown>).path === "string",
+                (s): s is LocalDataSourceDeclaration => {
+                    if (typeof s !== "object" || s === null) return false;
+                    const src = s as Record<string, unknown>;
+                    // T-30-01: only allow known types (geojson, route) — drop any other.
+                    return (
+                        typeof src.name === "string" &&
+                        typeof src.type === "string" &&
+                        ALLOWED_SOURCE_TYPES.has(src.type) &&
+                        typeof src.path === "string"
+                    );
+                },
             );
 
             if (sources.length === 0) continue;
@@ -131,7 +161,13 @@ async function fetchGeojsonSource(
     const relativePart = sourcePath.startsWith("/") ? sourcePath.slice(1) : sourcePath;
     const absolutePath = path.join(process.cwd(), "public", relativePart);
 
-    const raw = await readFile(absolutePath, "utf-8");
+    // T-30-03 defense-in-depth: ensure resolved path stays inside public/
+    const publicRoot = path.join(process.cwd(), "public") + path.sep;
+    if (!absolutePath.startsWith(publicRoot)) {
+        throw new Error(`[localSources] Path escapes public/: ${sourcePath}`);
+    }
+
+    const raw = await _readfile(absolutePath, "utf-8");
     const parsed: unknown = JSON.parse(raw);
     const entities = normalizeGeoJson(parsed, prefix, pluginId);
 
@@ -151,12 +187,19 @@ async function fetchRouteSource(
         throw new Error(`[localSources] Rejected unsafe path: ${sourcePath}`);
     }
 
-    const base = process.env.NEXTAUTH_URL ?? process.env.WWV_INTERNAL_BASE_URL ?? "http://localhost:3000";
+    // T-30-01 SSRF guard: only relative paths (starting with "/") are allowed.
+    // An absolute URL (containing "://") or a non-slash-prefixed path would
+    // resolve against the base and could reach external hosts.
+    if (!sourcePath.startsWith("/") || sourcePath.includes("://")) {
+        throw new Error(`[localSources] Rejected non-relative route path: ${sourcePath}`);
+    }
+
+    // Drop NEXTAUTH_URL — it is an auth callback URL (may carry a path).
+    const base = process.env.WWV_INTERNAL_BASE_URL ?? "http://localhost:3000";
     const url = new URL(sourcePath, base).toString();
 
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) {
-        console.error(`[localSources] Route source returned ${res.status} for ${sourcePath}`);
         return { pluginId, entities: [], timestamp: new Date() };
     }
 
