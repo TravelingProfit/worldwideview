@@ -109,3 +109,56 @@ export async function redisSlidingWindow(
         return { allowed: true, retryAfterMs: 0 };
     }
 }
+
+// ---------------------------------------------------------------------------
+// DEPLOY-03: peek helper for the global Nominatim throttle poll loop.
+//
+// Counts how many requests are currently in the window WITHOUT adding a new
+// entry. Used by waitForGlobalSlot to poll for slot availability without
+// inflating the ZSET on every iteration of the wait loop. The committing
+// add happens only once, via redisSlidingWindow, when the slot is taken.
+// ---------------------------------------------------------------------------
+
+export interface SlidingWindowPeekResult {
+    /** Number of entries currently inside the window. */
+    count: number;
+    /** Milliseconds until the oldest in-window entry ages out (0 when count is 0). */
+    retryAfterMs: number;
+}
+
+/**
+ * Read-only ZSET sliding-window count.
+ *
+ * Prunes expired entries then counts, but does NOT add a new member.
+ * Fails OPEN (count: 0) on Redis errors so a Redis outage never stalls the
+ * wait loop indefinitely.
+ *
+ * @param key      Redis key (same key passed to redisSlidingWindow)
+ * @param windowMs Window duration in milliseconds
+ */
+export async function redisSlidingWindowPeek(
+    key: string,
+    windowMs: number,
+): Promise<SlidingWindowPeekResult> {
+    try {
+        const now = Date.now();
+        const windowStart = now - windowMs;
+        const ttlSeconds = Math.ceil(windowMs / 1_000) + 1;
+
+        await redis.zremrangebyscore(key, "-inf", windowStart);
+        await redis.expire(key, ttlSeconds);
+        const count = await redis.zcard(key);
+
+        if (count === 0) {
+            return { count: 0, retryAfterMs: 0 };
+        }
+
+        const oldest = await redis.zrange(key, 0, 0, "WITHSCORES");
+        const oldestScore = oldest.length >= 2 ? Number(oldest[1]) : now;
+        const retryAfterMs = Math.max(1, oldestScore + windowMs - now);
+        return { count, retryAfterMs };
+    } catch (err) {
+        console.warn("[redisSlidingWindowPeek] Redis error, failing open:", err);
+        return { count: 0, retryAfterMs: 0 };
+    }
+}

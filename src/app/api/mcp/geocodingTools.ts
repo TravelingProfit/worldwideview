@@ -1,10 +1,10 @@
 /**
- * MCP Geocoding Tool registrar (Phase 22 Wave 2 -- 22-02).
+ * MCP Geocoding Tool registrar (Phase 22 Wave 2, 22-02).
  *
  * Registers two MCP tools:
- *   geocode_location -- resolve a place name/address to coordinates via Nominatim
- *                       (GEO-01), with a per-user rate limit + 24h Redis cache (GEO-03)
- *   fly_to           -- enqueue a flyTo GlobeCommand to move the browser camera (GEO-02)
+ *   geocode_location: resolve a place name/address to coordinates via Nominatim
+ *                     (GEO-01), with a per-user rate limit + 24h Redis cache (GEO-03)
+ *   fly_to: enqueue a flyTo GlobeCommand to move the browser camera (GEO-02)
  *
  * Security: userId comes ONLY from ctx (verified auth result), never from tool
  * arguments. The Nominatim URL is hardcoded; the user query is injected via
@@ -15,8 +15,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { enqueueGlobeCommand, resolveActiveSessionId } from "@/lib/globeCommandQueue";
 import type { GlobeCommand } from "@/core/globe/types/GlobeCommand";
-import { fetchGeocode } from "@/lib/nominatim";
-import type { RawNominatimItem, NominatimResult } from "@/lib/nominatim";
+import { fetchGeocode, normalizeNominatimResult } from "@/lib/nominatim";
+import type { RawNominatimItem } from "@/lib/nominatim";
 import { checkRateLimit } from "@/lib/geocodingRateLimit";
 import { redis } from "@/lib/redis";
 import { latSchema, lonSchema } from "@/lib/mcp/coordinateSchemas";
@@ -32,29 +32,6 @@ function textResult(text: string): McpTextResult {
 }
 
 const NO_SESSION_RESULT = textResult("no active globe session to control");
-
-/**
- * Normalize a raw Nominatim item to the public NominatimResult shape (D-06).
- * Kept local (not imported) so that test mocks of "@/lib/nominatim" -- which
- * only stub fetchGeocode -- do not stub out the normalization step.
- * Nominatim boundingbox is ["south","north","west","east"]; remap to
- * [west, south, east, north] numbers.
- */
-function normalizeResult(r: RawNominatimItem): NominatimResult {
-    const bb = r.boundingbox ?? ["0", "0", "0", "0"];
-    return {
-        lat: parseFloat(r.lat ?? "0"),
-        lng: parseFloat(r.lon ?? "0"),
-        name: r.name ?? "",
-        name_en: r.namedetails?.["name:en"] ?? r.name ?? "",
-        type: r.type ?? "",
-        addresstype: r.addresstype ?? "",
-        country: r.address?.country ?? "",
-        display_name: r.display_name ?? "",
-        bbox: [parseFloat(bb[2]), parseFloat(bb[0]), parseFloat(bb[3]), parseFloat(bb[1])],
-        importance: r.importance ?? 0,
-    };
-}
 
 /** Best-effort cache read: a Redis outage degrades to a miss, never an error. */
 async function cacheGet(key: string): Promise<string | null> {
@@ -112,7 +89,7 @@ export function registerGeocodingTools(
                 "Resolve a place name or address to coordinates and a bounding box via OpenStreetMap Nominatim. " +
                 "Use before fly_to to obtain lat/lng from a name; do not guess coordinates. " +
                 "Limitations: Nominatim is rate-limited per user; results are cached 24h; returns 'no results found' when nothing matches. " +
-                "Parameters: query (string, required) -- place name or address; limit (integer 1-20, optional, default 5). " +
+                "Parameters: query (string, required) - place name or address; limit (integer 1-20, optional, default 5). " +
                 "Output: JSON array sorted by importance, each { lat, lng, name, name_en, type, addresstype, country, display_name, bbox: [west,south,east,north], importance }. " +
                 "Example: geocode_location({ query: 'Paris', limit: 3 }) -> [{ lat: 48.85, lng: 2.35, name: 'Paris', bbox: [...] }].",
             inputSchema: {
@@ -140,7 +117,7 @@ export function registerGeocodingTools(
                 const raw = await fetchGeocode({ query: args.query, limit });
                 if (raw.length === 0) return textResult("no results found");
 
-                const results = raw.map(normalizeResult);
+                const results = (raw as RawNominatimItem[]).map(normalizeNominatimResult);
                 const json = JSON.stringify(results);
                 await cacheSet(cacheKey, json, CACHE_TTL_SECONDS);
                 return textResult(json);
@@ -160,7 +137,7 @@ export function registerGeocodingTools(
                 "Requires an active globe session (read globe://sessions first); returns 'no active globe session to control' when no tab is live. " +
                 "Prefer pan_globe for relative panning or focus_entity to snap to a known entity; use fly_to when you have explicit lat/lng (e.g. from geocode_location). " +
                 "Parameters: lat (-90..90, required), lng (-180..180, required), altitude (metres, optional, default 15000), " +
-                "bbox ([west,south,east,north], optional -- fit this region in view), sessionId (optional -- omit for most-recently-active tab). " +
+                "bbox ([west,south,east,north], optional - fit this region in view), sessionId (optional - omit for most-recently-active tab). " +
                 "Example: fly_to({ lat: 48.85, lng: 2.35 }) or fly_to({ lat: 0, lng: 0, bbox: [2.2,48.8,2.5,48.9] }).",
             inputSchema: {
                 lat: latSchema.describe("Latitude [-90, 90]"),

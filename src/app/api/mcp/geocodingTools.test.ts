@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/nominatim");
+vi.mock("@/lib/nominatim", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@/lib/nominatim")>();
+    return {
+        ...actual,
+        fetchGeocode: vi.fn(),
+    };
+});
 vi.mock("@/lib/geocodingRateLimit");
 vi.mock("@/lib/globeCommandQueue");
 
