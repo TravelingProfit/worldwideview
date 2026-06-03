@@ -11,7 +11,7 @@ import { matchFilterValue } from "@/core/filters/matchFilterValue";
 import type { FilterValue } from "@/core/plugins/PluginTypes";
 import { hasLocalSource, resolveLocalSnapshot, getLocalSourceIds } from "./localSources";
 
-function getEngineUrl(): string {
+export function getEngineUrl(): string {
     return process.env.WWV_DATA_ENGINE_URL ?? "http://localhost:5001";
 }
 

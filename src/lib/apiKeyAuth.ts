@@ -1,6 +1,7 @@
 import { randomBytes, createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/db";
 import { edition } from "@/core/edition";
+import { isSigningKeyValid } from "@/lib/signingKeyConfig";
 
 // ---------------------------------------------------------------------------
 // Signing key for HMAC-SHA256 hashing of API key secrets.
@@ -20,17 +21,14 @@ function getSigningKey(): string {
     const fallback = process.env.AUTH_SECRET;
 
     if (edition === "cloud" || edition === "demo") {
-        if (!dedicated) {
+        if (!isSigningKeyValid()) {
             throw new Error(
                 `API_KEY_HMAC_SECRET must be set and distinct from AUTH_SECRET in ${edition} edition`,
             );
         }
-        if (dedicated === fallback) {
-            throw new Error(
-                `API_KEY_HMAC_SECRET must be set and distinct from AUTH_SECRET in ${edition} edition`,
-            );
-        }
-        return dedicated;
+        // isSigningKeyValid() returning true guarantees dedicated is set and
+        // distinct from AUTH_SECRET for cloud/demo editions.
+        return dedicated as string;
     }
 
     // local edition: allow AUTH_SECRET fallback for convenience

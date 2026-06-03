@@ -12,6 +12,7 @@ export interface RedisMultiChain {
 }
 
 export interface RedisClient {
+    ping(): Promise<string>;
     set(key: string, value: string, exFlag: "EX", ttlSeconds: number): Promise<string | null>;
     get(key: string): Promise<string | null>;
     zadd(key: string, score: number, member: string): Promise<number>;
