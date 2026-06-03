@@ -20,6 +20,7 @@ import type { RawNominatimItem } from "@/lib/nominatim";
 import { checkRateLimit } from "@/lib/geocodingRateLimit";
 import { redis } from "@/lib/redis";
 import { latSchema, lonSchema } from "@/lib/mcp/coordinateSchemas";
+import { SESSION_REQUIRED_PREAMBLE } from "@/lib/mcp/toolDescriptionFragments";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -133,6 +134,7 @@ export function registerGeocodingTools(
         "fly_to",
         {
             description:
+                SESSION_REQUIRED_PREAMBLE +
                 "Fly the live globe camera to a geocoded coordinate, optionally fitting a bounding box in view. " +
                 "Requires an active globe session (read globe://sessions first); returns 'no active globe session to control' when no tab is live. " +
                 "Prefer pan_globe for relative panning or focus_entity to snap to a known entity; use fly_to when you have explicit lat/lng (e.g. from geocode_location). " +

@@ -14,15 +14,15 @@
  * @module src/components/layout
  */
 
-import { useState } from "react";
-import { Copy, Check, Terminal } from "lucide-react";
+import { Terminal, Info } from "lucide-react";
 import { isCloud } from "@/core/edition";
+import { CopyField, mutedMicro, subHeaderStyle } from "./ConnectAgentCopyField";
+import { AGENT_PROMPT } from "./connectAgentPrompt";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const COPIED_RESET_MS = 1500;
 const PLACEHOLDER_TOKEN = "wwv_<prefix>.<secret>";
 
 /**
@@ -48,156 +48,6 @@ function resolveMcpUrl(): string {
     // SSR fallback (should not be reached for a "use client" component).
     return "http://localhost:3000/api/mcp";
 }
-
-// ---------------------------------------------------------------------------
-// Shared style tokens (mirror PersonalApiKeysSection to keep visual parity)
-// ---------------------------------------------------------------------------
-
-const inputStyle: React.CSSProperties = {
-    background: "var(--bg-tertiary)",
-    border: "1px solid var(--border-subtle)",
-    color: "var(--text-primary)",
-    padding: "var(--space-xs) var(--space-sm)",
-    borderRadius: "var(--radius-sm)",
-    fontSize: 12,
-    width: "100%",
-    outline: "none",
-    fontFamily: "var(--font-mono)",
-};
-
-const buttonStyle: React.CSSProperties = {
-    background: "none",
-    border: "1px solid var(--border-subtle)",
-    color: "var(--text-primary)",
-    borderRadius: "var(--radius-sm)",
-    padding: "var(--space-xs) var(--space-sm)",
-    fontSize: 12,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: "var(--space-xs)",
-};
-
-const mutedMicro: React.CSSProperties = { fontSize: 11, color: "var(--text-muted)" };
-
-const subHeaderStyle: React.CSSProperties = {
-    fontSize: 11,
-    fontWeight: 600,
-    color: "var(--text-secondary)",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    marginBottom: "var(--space-xs)",
-    marginTop: "var(--space-md)",
-};
-
-// ---------------------------------------------------------------------------
-// CopyField sub-component
-// ---------------------------------------------------------------------------
-
-interface CopyFieldProps {
-    value: string;
-    label: string;
-    multiline?: boolean;
-}
-
-function CopyField({ value, label, multiline = false }: CopyFieldProps) {
-    const [copied, setCopied] = useState(false);
-
-    async function handleCopy() {
-        try {
-            await navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), COPIED_RESET_MS);
-        } catch {
-            // Clipboard access denied -- user must copy manually.
-        }
-    }
-
-    return (
-      <div style={{ marginBottom: "var(--space-sm)" }}>
-        <div style={mutedMicro}>{label}</div>
-        <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)" }}>
-          {multiline ? (
-            <textarea
-              readOnly
-              value={value}
-              rows={value.split("\n").length + 1}
-              style={{
-                  ...inputStyle,
-                  resize: "vertical",
-                  minHeight: 80,
-              }}
-              autoComplete="off"
-              data-lpignore="true"
-              data-form-type="other"
-              spellCheck={false}
-            />
-          ) : (
-            <input
-              type="text"
-              readOnly
-              value={value}
-              style={inputStyle}
-              autoComplete="off"
-              data-lpignore="true"
-              data-form-type="other"
-              spellCheck={false}
-            />
-          )}
-          <button
-            type="button"
-            onClick={handleCopy}
-            style={{
-                ...buttonStyle,
-                color: copied ? "#22c55e" : "var(--text-primary)",
-                flexShrink: 0,
-                alignSelf: "flex-start",
-            }}
-            title={copied ? "Copied!" : `Copy ${label}`}
-          >
-            {copied ? <Check size={12} /> : <Copy size={12} />}
-            {copied ? "Copied!" : "Copy"}
-          </button>
-        </div>
-      </div>
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Agent-capabilities prompt (CONNECT-03)
-// Lists the v1.3 Location Intelligence tools an agent can call. Keep in sync
-// with the registrars in src/app/api/mcp/*Tools.ts. Plugin filter authoring is
-// documented in docs/plugin-filter-guide.md.
-// ---------------------------------------------------------------------------
-
-const AGENT_PROMPT = `You have access to the WorldWideView (WWV) geospatial intelligence engine via MCP.
-WWV visualizes real-time global data on an interactive 3D CesiumJS globe, including aviation,
-incidents, weather, and custom data plugins.
-
-This MCP connection is live and authenticated. You can call these tools:
-
-Data query:
-- search_entities: search entities by name across active plugins; supports optional inline filters.
-- get_entities_in_region: find entities inside a lat/lng bounding box.
-- get_entity_details: get full details for one entity by pluginId + entityId.
-- get_plugin_data: get the current snapshot of all entities for a plugin.
-
-Location (geocoding + camera):
-- geocode_location: resolve a place name or address to coordinates and a bounding box.
-- fly_to: fly the live globe camera to a coordinate or bounding box.
-
-Favorites:
-- save_favorite: bookmark an entity so the user can return to it later.
-- list_favorites: list the user's bookmarks, each with a live/stale status.
-- remove_favorite: delete a bookmarked entity.
-
-Live filtering:
-- get_plugin_filters: list the filterable fields a plugin declares.
-- set_filter: apply filters to a plugin's layer on the live globe.
-- clear_filter: clear one plugin's filters, or all filters.
-
-When the user asks about global data, geospatial queries, or globe visualisation, use these tools
-to find places, move the camera, search and filter live entities, and manage their bookmarks.`;
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -244,6 +94,47 @@ export function ConnectAgentHelper({ token }: ConnectAgentHelperProps) {
           </div>
           <div style={mutedMicro}>
             Use the URL and token below to connect Claude Desktop, Cursor, or VS Code to this globe.
+          </div>
+
+          {/* Prerequisites callout (ONBRD-02) */}
+          <div style={{
+              display: "flex",
+              gap: "var(--space-sm)",
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-sm)",
+              padding: "var(--space-sm) var(--space-md)",
+              marginTop: "var(--space-sm)",
+          }}
+          >
+            <Info size={13} style={{ color: "var(--text-muted)", flexShrink: 0, marginTop: 1 }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+              <div style={{ ...mutedMicro, fontWeight: 600, color: "var(--text-secondary)" }}>
+                Before connecting
+              </div>
+              <ul style={{ ...mutedMicro, margin: 0, paddingLeft: "var(--space-md)", lineHeight: 1.6 }}>
+                <li>
+                  You must be <strong>signed in</strong> to WorldWideView. Your API key is tied to your account.
+                </li>
+                {isCloud && (
+                  <li>
+                    MCP access is a <strong>cloud edition</strong> feature. It is not available on the demo edition.
+                  </li>
+                )}
+                <li>
+                  <strong>Read/query tools</strong> (search, geocode, favorites, plugin data) work with just
+                  your API key and do not require an open browser tab.
+                </li>
+                <li>
+                  <strong>Command/control tools</strong> (pan_globe, fly_to, toggle_layer, set_filter, etc.)
+                  require this WorldWideView tab to stay open and signed in. Without an open globe tab the
+                  command is accepted but has no visible effect.
+                </li>
+              </ul>
+              <div style={mutedMicro}>
+                New here? Follow the MCP quickstart guide in the project docs (docs/mcp-quickstart.md) for step-by-step setup.
+              </div>
+            </div>
           </div>
 
           {/* Section: mcpServers JSON (CONNECT-02) */}

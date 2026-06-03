@@ -24,6 +24,7 @@ import { filterValueSchema } from "@/lib/mcp/filterSchemas";
 import type { GlobeCommand } from "@/core/globe/types/GlobeCommand";
 import { pluginIdSchema } from "@/lib/mcp/identifierSchemas";
 import { listStreamingPlugins } from "@/app/api/mcp/discoveryHelpers";
+import { SESSION_REQUIRED_PREAMBLE } from "@/lib/mcp/toolDescriptionFragments";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -66,6 +67,7 @@ export function registerFilterTools(
         "set_filter",
         {
             description:
+                SESSION_REQUIRED_PREAMBLE +
                 "Apply one or more filters to a plugin's live globe layer (no page reload). " +
                 "Use after get_plugin_filters to discover valid filter ids; affects the live globe layer, not data query tools. " +
                 "Use list_available_plugins to confirm valid pluginIds before calling. " +
@@ -118,6 +120,7 @@ export function registerFilterTools(
         "clear_filter",
         {
             description:
+                SESSION_REQUIRED_PREAMBLE +
                 "Clear active filters on the live globe. " +
                 "Prefer clear_filter over re-setting filters to empty values; omit pluginId to clear ALL filters across every plugin at once. " +
                 "Limitations: requires an active globe session; returns 'no active globe session to control' when no tab is live. " +

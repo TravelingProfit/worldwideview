@@ -22,6 +22,7 @@ import { TIME_WINDOW_VALUES } from "@/core/globe/types/GlobeCommand";
 import type { GlobeCommand } from "@/core/globe/types/GlobeCommand";
 import { latSchema, lonSchema, altSchema } from "@/lib/mcp/coordinateSchemas";
 import { layerIdSchema, entityIdSchema } from "@/lib/mcp/identifierSchemas";
+import { SESSION_REQUIRED_PREAMBLE } from "@/lib/mcp/toolDescriptionFragments";
 import { listStreamingPlugins } from "./discoveryHelpers";
 import { getEntityDetails } from "@/lib/data-query/service";
 
@@ -69,6 +70,7 @@ export function registerGlobeCommandTools(
         "pan_globe",
         {
             description:
+                SESSION_REQUIRED_PREAMBLE +
                 "Fly the globe camera to an explicit coordinate. Requires an active globe session: READ globe://sessions first. If no tab is open, returns \"no active globe session to control\". " +
                 "Prefer pan_globe over focus_entity when you have a lat/lon and no entity id, or when focus_entity entity-id resolution is not needed. " +
                 "Limitations: latitude [-90, 90], longitude [-180, 180], altitude > 0 metres; out-of-range values are rejected. " +
@@ -112,6 +114,7 @@ export function registerGlobeCommandTools(
         "focus_entity",
         {
             description:
+                SESSION_REQUIRED_PREAMBLE +
                 "Point the globe camera at a known entity or coordinate. Requires an active globe session: READ globe://sessions first. If no tab is open, returns \"no active globe session to control\". " +
                 "Prefer focus_entity over pan_globe when you have an entity id and want to centre on it. " +
                 "When lat/lon are provided they are used directly. " +
@@ -178,6 +181,7 @@ export function registerGlobeCommandTools(
         "toggle_layer",
         {
             description:
+                SESSION_REQUIRED_PREAMBLE +
                 "Enable or disable a plugin data layer on the globe. Requires an active globe session: READ globe://sessions first. If no tab is open, returns \"no active globe session to control\". " +
                 "Prefer toggle_layer over pan_globe or set_timeline when changing layer visibility, not camera position or playback time. " +
                 "Use list_available_plugins to confirm valid layerIds before calling. " +
@@ -225,6 +229,7 @@ export function registerGlobeCommandTools(
         "set_timeline",
         {
             description:
+                SESSION_REQUIRED_PREAMBLE +
                 "Set the globe timeline position, time window, or playback mode. Requires an active globe session: READ globe://sessions first. If no tab is open, returns \"no active globe session to control\". " +
                 "Prefer set_timeline over toggle_layer or pan_globe when adjusting time or playback, not layer visibility or camera position. " +
                 "Limitations: currentTime must be ISO 8601; timeWindow must be one of '1h','6h','24h','48h','7d'. " +
