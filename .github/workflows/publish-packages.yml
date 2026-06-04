@@ -1,0 +1,93 @@
+# Trigger model: merge to main with a version bump in the relevant package.json is the
+# intended signal. This workflow checks npm for the exact version before publishing, so
+# re-running on an already-published version is safe and idempotent.
+#
+# Auth: a single npm granular token scoped to @worldwideview/*, stored as the
+# org-level GitHub secret NPM_TOKEN. One secret covers every @worldwideview package
+# (these libs + all wwv-plugins), so no per-package setup is needed. `actions/setup-node`
+# (with registry-url) writes an .npmrc that reads NODE_AUTH_TOKEN. We still request
+# `id-token: write` and pass `--provenance` so npm records a signed build-provenance
+# attestation (provenance works with token auth; it does NOT require per-package config).
+#
+# Publish tool: we use `npm publish` (not `pnpm publish`). Correct ONLY while these packages
+# have no `workspace:*` dependencies (npm does not rewrite the workspace: protocol). The 3
+# packages here have none (sdk -> react peer; libs -> sdk peer via a semver range). If any
+# package later adds a `workspace:*` dependency, switch its publish step to
+# `pnpm publish --no-git-checks`.
+
+name: Publish Packages to npm
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Serialize runs so two fast-follow merges can't both pass the version-check and then
+# race to publish the same version (npm would 403 the loser). Never cancel an in-flight
+# publish.
+concurrency:
+  group: publish-packages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # id-token: write is for build-provenance attestation (not auth); scope to this job.
+    permissions:
+      contents: read
+      id-token: write
+    # Auth for every npm publish step in this job (setup-node reads NODE_AUTH_TOKEN).
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build wwv-plugin-sdk
+        run: pnpm --filter @worldwideview/wwv-plugin-sdk run build
+
+      - name: Publish @worldwideview/wwv-plugin-sdk
+        run: |
+          LOCAL_VERSION=$(node -p "require('./packages/wwv-plugin-sdk/package.json').version")
+          # Equality check (not exit-code): only skip when that EXACT version is already on
+          # npm. An unpublished-yet-existing package returns empty here -> we publish. --silent
+          # keeps npm notices off stdout so the comparison stays clean.
+          NPM_VERSION=$(npm view "@worldwideview/wwv-plugin-sdk@${LOCAL_VERSION}" version --silent 2>/dev/null || true)
+          if [ "$NPM_VERSION" = "$LOCAL_VERSION" ]; then
+            echo "@worldwideview/wwv-plugin-sdk@${LOCAL_VERSION} already published — skipping"
+          else
+            echo "Publishing @worldwideview/wwv-plugin-sdk@${LOCAL_VERSION}"
+            npm publish packages/wwv-plugin-sdk --provenance --access public
+          fi
+
+      - name: Publish @worldwideview/wwv-lib-incidents
+        run: |
+          LOCAL_VERSION=$(node -p "require('./packages/wwv-lib-incidents/package.json').version")
+          NPM_VERSION=$(npm view "@worldwideview/wwv-lib-incidents@${LOCAL_VERSION}" version --silent 2>/dev/null || true)
+          if [ "$NPM_VERSION" = "$LOCAL_VERSION" ]; then
+            echo "@worldwideview/wwv-lib-incidents@${LOCAL_VERSION} already published — skipping"
+          else
+            echo "Publishing @worldwideview/wwv-lib-incidents@${LOCAL_VERSION}"
+            npm publish packages/wwv-lib-incidents --provenance --access public
+          fi
+
+      - name: Publish @worldwideview/wwv-lib-aviation
+        run: |
+          LOCAL_VERSION=$(node -p "require('./packages/wwv-lib-aviation/package.json').version")
+          NPM_VERSION=$(npm view "@worldwideview/wwv-lib-aviation@${LOCAL_VERSION}" version --silent 2>/dev/null || true)
+          if [ "$NPM_VERSION" = "$LOCAL_VERSION" ]; then
+            echo "@worldwideview/wwv-lib-aviation@${LOCAL_VERSION} already published — skipping"
+          else
+            echo "Publishing @worldwideview/wwv-lib-aviation@${LOCAL_VERSION}"
+            npm publish packages/wwv-lib-aviation --provenance --access public
+          fi
