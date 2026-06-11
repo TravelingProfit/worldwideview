@@ -31,7 +31,7 @@ describe("GET /api/auth/ticket", () => {
         expect(await res.json()).toEqual({ error: "Missing pluginId" });
     });
 
-    it("returns 500 when getTicket throws", async () => {
+    it("returns 500 when getTicket throws a generic error", async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as any);
         vi.mocked(getTicket).mockRejectedValue(new Error("Marketplace unreachable"));
@@ -39,6 +39,18 @@ describe("GET /api/auth/ticket", () => {
         const res = await GET(req);
         expect(res.status).toBe(500);
         expect(await res.json()).toEqual({ error: "Failed to obtain plugin ticket" });
+    });
+
+    it("returns 200 with noCredential when no marketplace credential exists", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vi.mocked(auth).mockResolvedValue({ user: { id: "u1" } } as any);
+        vi.mocked(getTicket).mockRejectedValue(
+            new Error("[ticketClient] No marketplace credential found. Complete the PKCE flow first.")
+        );
+        const req = new NextRequest("http://localhost/api/auth/ticket?pluginId=aviation");
+        const res = await GET(req);
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ noCredential: true });
     });
 
     it("returns 200 with token on success", async () => {

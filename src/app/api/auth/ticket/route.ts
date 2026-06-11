@@ -27,6 +27,13 @@ export async function GET(req: NextRequest) {
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         console.error("[ticket-route]", message);
+        // Gracefully handle unlinked users — no marketplace credential means
+        // the user hasn't completed the PKCE flow yet. Return noCredential
+        // so the WsClient can fall back to unauthenticated mode instead of
+        // closing the socket.
+        if (message.includes("No marketplace credential found")) {
+            return NextResponse.json({ noCredential: true });
+        }
         return NextResponse.json({ error: "Failed to obtain plugin ticket" }, { status: 500 });
     }
 }
