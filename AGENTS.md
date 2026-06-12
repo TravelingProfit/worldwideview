@@ -54,6 +54,7 @@ Agents MUST respect these at all times:
 ## 5. AI Meta-Directives
 
 > [!WARNING]
+> - **MUST** query Engram memory (`mem_context` + `mem_search`) at session start before acting — previous sessions may hold relevant decisions, bug fixes, deployment quirks, and architecture context.
 > - Always use `.md` extensions. Never `.mdc`. Never reference Cursor IDE rules.
 > - **MUST** bump semver in `package.json` before every commit via `/commit` workflow (`feat:` → Minor, `fix/refactor/perf:` → Patch).
 > - **MUST** explain complex concepts simply — include an everyday-life analogy.
