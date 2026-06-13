@@ -34,6 +34,12 @@ describe("Marketplace Status Route", () => {
         const { prisma } = await import("@/lib/db");
         const mockDate = new Date("2026-06-01T12:00:00Z");
         vi.mocked(prisma.marketplaceCredential.findUnique).mockResolvedValue({
+            id: "test-id",
+            tenantId: "local",
+            version: "1",
+            salt: "test-salt",
+            nonce: "test-nonce",
+            ciphertext: "test-ciphertext",
             createdAt: mockDate,
             updatedAt: mockDate,
         });

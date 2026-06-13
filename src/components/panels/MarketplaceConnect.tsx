@@ -30,13 +30,14 @@ type Status =
 // ─── Component ──────────────────────────────────────────────
 
 export function MarketplaceConnect() {
-    const [status, setStatus] = useState<Status>({ kind: "loading" });
+    const [status, setStatus] = useState<Status>(() =>
+        isDemo
+            ? { kind: "unavailable", reason: "Not available on demo edition" }
+            : { kind: "loading" },
+    );
 
     useEffect(() => {
-        if (isDemo) {
-            setStatus({ kind: "unavailable", reason: "Not available on demo edition" });
-            return;
-        }
+        if (isDemo) return;
 
         let cancelled = false;
         fetch("/api/marketplace/status")

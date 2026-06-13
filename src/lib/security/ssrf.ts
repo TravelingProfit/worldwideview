@@ -33,12 +33,17 @@ interface FetchOptions extends RequestInit {
     streaming?: boolean;
 }
 
+const warnedHosts = new Set<string>();
+
 function checkHostAllowlist(hostname: string): void {
     const raw = process.env.PROXY_HOST_ALLOWLIST ?? "";
     const allowlist = raw.trim();
 
     if (allowlist === "*") {
-        console.warn(`[SSRF] PROXY_HOST_ALLOWLIST="*" — permissive mode, host: ${hostname}. Populate the list from WARN logs then tighten.`);
+        if (!warnedHosts.has(hostname)) {
+            warnedHosts.add(hostname);
+            console.warn(`[SSRF] PROXY_HOST_ALLOWLIST="*" — permissive mode, host: ${hostname}. Populate the list from WARN logs then tighten.`);
+        }
         return;
     }
 

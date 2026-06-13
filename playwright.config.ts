@@ -36,8 +36,10 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. Restrict to 2 locally to prevent Next.js compilation overload. */
   workers: process.env.CI ? 1 : 2,
+  /* Output artifacts folder instead of root-level test-results/ */
+  outputDir: 'playwright/output',
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: [['html', { outputFolder: 'playwright/report' }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
